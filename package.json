@@ -6,7 +6,8 @@
     "serve": "vue-cli-service serve --port 3011",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "npm run build && http-server dist"
+    "start": "npm run build && http-server dist",
+    "heroku-prebuild": "npm install -g @vue/cli-service"
   },
   "dependencies": {
     "@vue/cli-service": "~5.0.0",
