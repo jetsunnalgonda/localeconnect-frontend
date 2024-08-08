@@ -82,7 +82,7 @@ export default {
         },
         async register() {
             console.log('Registering');
-            console.log('Registering with the api base url: ' + this.apiBaseUrl);
+            // console.log('Registering with the api base url: ' + this.apiBaseUrl);
             try {
                 const formData = new FormData();
                 formData.append('name', this.form.name);
