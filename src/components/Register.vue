@@ -72,7 +72,7 @@ export default {
         },
         async getPresignedUrl() {
             try {
-                const response = await axios.get(`${apiBaseUrl}/presigned-url`, {
+                const response = await axios.get(`${this.apiBaseUrl}/presigned-url`, {
                     params: { filename: this.file.name },
                 });
                 this.presignedUrl = response.data.url;
