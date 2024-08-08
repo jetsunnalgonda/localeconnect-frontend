@@ -100,8 +100,10 @@ export default {
                     formData.append('avatars', file);
                 });
 
-                console.log("formData = ") 
-                console.log(formData);
+                console.log('FormData entries:');
+                for (let pair of formData.entries()) {
+                    console.log(`${pair[0]}: ${pair[1]}`);
+                }
 
                 // Send registration data including location and avatar files to the server
                 await axios.post(`${this.apiBaseUrl}/register`, formData, {
