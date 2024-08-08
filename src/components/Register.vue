@@ -107,7 +107,7 @@ export default {
                 }
 
                 // Send registration data including location and avatar files to the server
-                await axios.post(`${this.apiBaseUrl}/register`, formData, {
+                await axios.post(`${this.apiBaseUrl}/register-test`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     }
