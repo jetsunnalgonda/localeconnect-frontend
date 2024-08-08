@@ -6,8 +6,7 @@
     "serve": "vue-cli-service serve --port 3011",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "npm run build && http-server dist",
-    "heroku-prebuild": "npm install -g @vue/cli-service @vue/cli-plugin-babel @vue/cli-plugin-eslint"
+    "start": "npm run build && http-server dist"
   },
   "dependencies": {
     "@babel/core": "^7.12.16",
