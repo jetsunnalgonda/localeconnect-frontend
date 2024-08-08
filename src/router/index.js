@@ -13,8 +13,13 @@ const routes = [
     { path: '/profile', component: UpdateProfile, meta: { requiresAuth: true } },
 ];
 
+// const router = createRouter({
+//   history: createWebHistory(process.env.BASE_URL),
+//   routes,
+// });
+
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(process.env.VUE_APP_FRONTEND_URL),
   routes,
 });
 
