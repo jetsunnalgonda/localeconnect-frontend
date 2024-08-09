@@ -30,4 +30,3 @@ private.key
 /uploads
 .DS_Store
 .vercel
-Dockerfile
