@@ -70,16 +70,6 @@ export default {
         handleFileUpload(event) {
             this.avatarFiles = Array.from(event.target.files);
         },
-        async getPresignedUrl() {
-            try {
-                const response = await axios.get(`${this.apiBaseUrl}/presigned-url`, {
-                    params: { filename: this.file.name },
-                });
-                this.presignedUrl = response.data.url;
-            } catch (error) {
-                console.error('Error getting presigned URL', error);
-            }
-        },
         async register() {
             console.log('Registering');
             console.log('Registering with the api base url: ' + this.apiBaseUrl);

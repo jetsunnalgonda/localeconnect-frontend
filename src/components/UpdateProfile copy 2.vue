@@ -108,45 +108,24 @@ export default {
     methods: {
         ...mapActions(['setUser', 'setAuthenticated']),
         async fetchUserData() {
-            console.log('Fetching user data...');
             try {
-                const response = await this.getUserProfile();
+                const response = await axios.get(`${this.apiBaseUrl}/profile`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                });
                 this.user = response.data;
                 this.form = { ...this.user };
                 this.form.avatars = this.user.avatars || [];
 
-                await this.loadAvatarUrls();
-
-                // this.temporaryAvatarUrl = this.profilePicUrl;
-                if (this.form.avatars.length > 0 && this.form.avatars[0].presignedUrl) {
-                    this.temporaryAvatarUrl = this.form.avatars[0].presignedUrl;
-                } else {
-                    // Fallback to a default avatar if no avatar is found
-                    this.temporaryAvatarUrl = '/default-avatar.jpg';
+                // Fetch pre-signed URLs for avatars
+                for (const avatar of this.form.avatars) {
+                    avatar.presignedUrl = await getPresignedUrl(avatar.url);
                 }
-                console.log('User data fetched successfully');
+
+                this.temporaryAvatarUrl = this.profilePicUrl;
+
             } catch (error) {
                 console.error('Error fetching user data', error);
                 this.handleServerError();
-            }
-        },
-        async getUserProfile() {
-            const url = `${this.apiBaseUrl}/profile`;
-            const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
-            console.log(`Requesting user profile from: ${url}`);
-            return axios.get(url, { headers });
-        },
-        async loadAvatarUrls() {
-            console.log('Loading avatar URLs...');
-            for (const avatar of this.form.avatars) {
-                try {
-                    avatar.presignedUrl = await getPresignedUrl(avatar.url);
-                    console.log(`Fetched presigned URL for avatar: ${avatar.url}`);
-                    console.log(`Presigned URL: ${avatar.presignedUrl}`);
-                } catch (error) {
-                    console.error(`Failed to fetch presigned URL for avatar: ${avatar.url}`, error);
-                    avatar.presignedUrl = '/default-avatar.jpg'; // Fallback URL
-                }
             }
         },
         async created() {
