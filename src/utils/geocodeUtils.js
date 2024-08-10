@@ -19,16 +19,20 @@ function getPlaceNameFromGeocodeResult(result) {
     let stateOrProvince = '';
     let country = '';
 
+    console.log('address components:', addressComponents)
+
     if (addressComponents) {
         addressComponents.forEach(component => {
-            if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
+            const types = component.types;
+        
+            if (!city && (types.includes('locality') || types.includes('postal_town') || types.includes('administrative_area_level_2'))) {
                 city = component.long_name;
-            } else if (component.types.includes('administrative_area_level_1')) {
+            } else if (!stateOrProvince && types.includes('administrative_area_level_1')) {
                 stateOrProvince = component.long_name;
-            } else if (component.types.includes('country')) {
+            } else if (!country && types.includes('country')) {
                 country = component.long_name;
             }
-        });
+        });        
 
         placeName = city 
             ? `${city}, ${stateOrProvince}, ${country}` 
