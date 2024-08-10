@@ -16,21 +16,29 @@ function getPlaceNameFromGeocodeResult(result) {
     let placeName = '';
     const addressComponents = result.address_components;
     let city = '';
+    let stateOrProvince = '';
     let country = '';
 
     if (addressComponents) {
         addressComponents.forEach(component => {
             if (component.types.includes('locality') || component.types.includes('administrative_area_level_2')) {
                 city = component.long_name;
+            } else if (component.types.includes('administrative_area_level_1')) {
+                stateOrProvince = component.long_name;
             } else if (component.types.includes('country')) {
                 country = component.long_name;
             }
         });
 
-        placeName = city ? `${city}, ${country}` : country;
+        placeName = city 
+            ? `${city}, ${stateOrProvince}, ${country}` 
+            : stateOrProvince 
+            ? `${stateOrProvince}, ${country}` 
+            : country;
     } else {
         console.error('Address components are undefined or empty');
     }
 
     return placeName;
 }
+
