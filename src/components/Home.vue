@@ -80,7 +80,7 @@ export default {
   },
   mounted() {
     this.getUserLocation();
-    initializeWebSocket();
+    initializeWebSocket(this.user.id);
     window.addEventListener('scroll', this.checkScroll);
   },
   beforeUnmount() {

@@ -3,26 +3,29 @@
 let ws = null;
 
 export function initializeWebSocket(userId) {
-  if (!ws) {
-    ws = new WebSocket(`${process.env.VUE_APP_SOCKET_SERVER_URL}/?userId=${userId}`);
-
-    ws.onopen = () => {
-      console.log('WebSocket connection opened');
-    };
-
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      handleSocketMessage(message);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error', error);
-    };
+  if (ws) {
+    console.log('Closing existing WebSocket connection');
+    ws.close(); // Close the existing connection
   }
+  console.log('Creating a new WebSocket connection with the userId: ' + userId);
+  ws = new WebSocket(`${process.env.VUE_APP_SOCKET_SERVER_URL}/?userId=${userId}`);
+
+  ws.onopen = () => {
+    console.log('WebSocket connection opened');
+  };
+
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    handleSocketMessage(message);
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket connection closed');
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error', error);
+  };
 }
 
 export function setupWebSocket() {
