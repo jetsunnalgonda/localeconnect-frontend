@@ -33,6 +33,7 @@ import apiClient from '@/api/apiClient';
 import MockCard from './MockCard.vue';
 import UserCard from './UserCard.vue';
 import { fetchNearbyUsersFromAPI } from '@/api/api';
+import { mapGetters } from 'vuex';
 
 import { initializeWebSocket, sendWebSocketMessage } from '@/utils/websocket';
 
@@ -72,6 +73,7 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(['user']),
     mockCardsCount() {
       return this.isLoading && this.numberOfFetchedUsers > 0 ? this.numberOfFetchedUsers : 0;
     }
@@ -131,6 +133,8 @@ export default {
           };
         }));
 
+        console.log('New users:', newUsers);
+
         this.users = [...new Set([...this.users, ...newUsers])];
         this.fetchedUsers = this.users?.length || 0;
 
@@ -170,6 +174,8 @@ export default {
       }
     },
     async likeUser(userId) {
+      console.log('Liker user id:', this.user.id);
+      console.log('User id to be liked:', userId);
       if (!this.user || !this.user.name) {
         console.error('User data is not available');
         return;
@@ -186,10 +192,10 @@ export default {
       }
 
       try {
-        const likeMessage = user.liked ? `${this.user.name} liked your profile.` : null;
+        // const likeMessage = user.liked ? `${this.user.name} liked your profile.` : null;
 
         // Send the like/unlike action to the server
-        await apiClient.post(`/like`, { likedUserId: userId, likeMessage });
+        await apiClient.post(`/like`, { likedUserId: userId });
 
         // Send the WebSocket notification only when a user is liked
         // if (user.liked) {
@@ -199,7 +205,7 @@ export default {
         // Optionally refresh the nearby users list
         await this.fetchNearbyUsers();
       } catch (error) {
-        console.error('Error liking/unliking user', error);
+        console.error('Home.vue: Error liking/unliking user', error);
 
         // Revert the UI change if there was an error
         if (user) {

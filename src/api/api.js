@@ -4,7 +4,7 @@ export const likeUser = async (userId, likeMessage) => {
   try {
     return await apiClient.post(`/like`, { likedUserId: userId, likeMessage });
   } catch (error) {
-    console.error('Error liking/unliking user', error);
+    console.error('api.js: Error liking/unliking user', error);
     throw error;  // Re-throw the error to handle it in the component
   }
 };
