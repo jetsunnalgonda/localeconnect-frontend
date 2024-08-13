@@ -25,6 +25,12 @@
       <MockCard v-for="n in mockCardsCount" :key="n" />
     </div>
 
+    <!-- <NotificationSlide :notification="notification" :show="showNotification" /> -->
+
+    <div v-if="showSnapIndicator" class="snap-indicator">
+      <div class="snap-line"></div>
+    </div>
+
   </div>
 </template>
 
@@ -32,10 +38,7 @@
 import apiClient from '@/api/apiClient';
 import MockCard from './MockCard.vue';
 import UserCard from './UserCard.vue';
-import { fetchNearbyUsersFromAPI } from '@/api/api';
-
-import { initializeWebSocket, sendWebSocketMessage } from '@/utils/websocket';
-
+// import NotificationSlide from './NotificationSlide.vue'; // Import the new component
 import { Notivue, Notification, push } from 'notivue'
 
 export default {
@@ -67,8 +70,8 @@ export default {
       limit: 8,
       hasMore: true,
       radiusKm: 15000,
-      showNotification: false,
-      notification: {},
+      showNotification: false, // Control for notification visibility
+      notification: {}, // Notification data
     };
   },
   computed: {
@@ -78,7 +81,7 @@ export default {
   },
   mounted() {
     this.getUserLocation();
-    initializeWebSocket();
+    this.setupWebSocket();
     window.addEventListener('scroll', this.checkScroll);
   },
   beforeUnmount() {
@@ -91,6 +94,19 @@ export default {
     pushSuccessNotification() {
       push.success('Something good has been pushed!');
     },
+    // triggerTestNotification() {
+    //   console.log("trigger test notification");
+    //   console.log('showNotification = ', this.showNotification);
+    //   this.notification = {
+    //     message: 'This is a test notification!',
+    //   };
+    //   this.showNotification = true;
+
+    //   // Hide the notification after 5 seconds
+    //   // setTimeout(() => {
+    //   //   this.showNotification = false;
+    //   // }, 5000);
+    // },
     async getUserLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -115,15 +131,23 @@ export default {
       this.isLoading = true;
 
       try {
-        const nearbyUsers = await fetchNearbyUsersFromAPI(
-          this.userLocation, this.radiusKm, this.page, this.limit)
+        const response = await apiClient.get('/feed', {
+          params: {
+            latitude: this.userLocation.latitude,
+            longitude: this.userLocation.longitude,
+            radiusKm: this.radiusKm,
+            page: this.page,
+            limit: this.limit,
+          },
+        });
 
-        if (nearbyUsers.length < this.limit) {
+        if (response.data.length < this.limit) {
           this.hasMore = false;
         }
-        this.numberOfFetchedUsers = nearbyUsers.length;
 
-        const newUsers = await Promise.all(nearbyUsers?.map(async (user) => {
+        this.numberOfFetchedUsers = response.data.length;
+
+        const newUsers = await Promise.all(response.data?.map(async (user) => {
           const liked = await this.isLiked(user.id);
           return {
             ...user,
@@ -132,6 +156,7 @@ export default {
         }));
 
         this.users = [...new Set([...this.users, ...newUsers])];
+
         this.fetchedUsers = this.users?.length || 0;
 
         this.page += 1;
@@ -155,7 +180,40 @@ export default {
         this.showSnapIndicator = false;
       }
     },
+    setupWebSocket() {
+      this.socket = new WebSocket(this.socketServerUrl);
 
+      this.socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log('WebSocket message received:', message);
+
+        if (message.action === 'updateUsers') {
+          this.users = message.data;
+        }
+
+        if (message.action === 'notification') {
+          this.notification = message.data;
+          this.showNotification = true;
+
+          // Hide the notification after 5 seconds
+          setTimeout(() => {
+            this.showNotification = false;
+          }, 5000);
+        }
+      };
+
+      this.socket.onopen = () => {
+        console.log('WebSocket connection opened');
+      };
+
+      this.socket.onclose = () => {
+        console.log('WebSocket connection closed');
+      };
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    },
     async isLiked(userIdToCheck) {
       try {
         const response = await apiClient.get(`/check-like`, {
@@ -170,49 +228,29 @@ export default {
       }
     },
     async likeUser(userId) {
-      if (!this.user || !this.user.name) {
-        console.error('User data is not available');
-        return;
-      }
       const user = this.users.find(user => user.id === userId);
 
       if (user) {
         user.liked = !user.liked;
       }
 
-      // Send a WebSocket message for the like action
-      if (user.liked) {
-        sendWebSocketMessage('LIKE', { userId, userName: this.user.name });
-      }
-
       try {
-        const likeMessage = user.liked ? `${this.user.name} liked your profile.` : null;
+        if (user.liked) {
+          await apiClient.get(`/like`, { likedUserId: userId }, {});
+        } else {
+          await apiClient.get(`/like`, { likedUserId: userId }, {});
+        }
 
-        // Send the like/unlike action to the server
-        await apiClient.post(`/like`, { likedUserId: userId, likeMessage });
-
-        // Send the WebSocket notification only when a user is liked
-        // if (user.liked) {
-        //   sendNotification(user.id, 'LIKE', this.user.name);
-        // }
-
-        // Optionally refresh the nearby users list
         await this.fetchNearbyUsers();
       } catch (error) {
         console.error('Error liking/unliking user', error);
-
-        // Revert the UI change if there was an error
-        if (user) {
-          user.liked = !user.liked;
-        }
       }
     },
-
     handleViewDetails(user) {
       this.selectedUser = user;
     }
   }
-}
+};
 </script>
 
 <style scoped>
