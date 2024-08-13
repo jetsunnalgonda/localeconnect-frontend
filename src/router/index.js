@@ -4,6 +4,7 @@ import Register from '../components/Register.vue';
 import Login from '../components/Login.vue';
 import Logout from '../components/Logout.vue';
 import UpdateProfile from '../components/UpdateProfile.vue'; 
+import LoadingOverlay from '../components/LoadingOverlay.vue'; 
 
 const routes = [
     { path: '/', component: Home, meta: { requiresAuth: true } },
@@ -11,6 +12,7 @@ const routes = [
     { path: '/login', component: Login },
     { path: '/logout', component: Logout },
     { path: '/profile', component: UpdateProfile, meta: { requiresAuth: true } },
+    { path: '/loading', component: LoadingOverlay }
 ];
 
 const router = createRouter({

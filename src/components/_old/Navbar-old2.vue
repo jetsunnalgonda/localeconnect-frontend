@@ -4,6 +4,7 @@
             <div class="logo">
                 <router-link to="/">Cool App</router-link>
             </div>
+            <NotificationPanel />
             <div v-if="isAuthenticated" class="profile-menu" @click="toggleDropdown">
                 <img :src="profilePicUrl" alt="Profile Picture" class="profile-pic" />
                 <div class="user-name">{{ userName }}</div> <!-- Display user's name -->
@@ -18,10 +19,14 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import NotificationPanel from './NotificationPanel.vue';
 
 // const apiBaseUrl = process.env.VUE_APP_API_BASE_URL;
 
 export default {
+    components: {
+        NotificationPanel,
+    },
     name: 'NavBar',
     data() {
         return {

@@ -1,118 +1,102 @@
 <template>
-    <div class="login-container">
-        <h2>Login</h2>
-        <form @submit.prevent="login">
-            <div class="form-group">
-                <label for="email">Email:</label>
-                <input v-model="form.email" id="email" type="email" required />
-            </div>
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input v-model="form.password" id="password" type="password" required />
-            </div>
-            <button type="submit" class="login-button">Login</button>
-        </form>
-        <button @click="goToRegister" class="register-button">Register</button>
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p> <!-- Display error messages -->
-    </div>
+  <div class="login-container loading-overlay-container">
+    <h2>Login</h2>
+    <form @submit.prevent="handleLogin" :class="{ 'disabled': isLoading }">
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input v-model="form.email" id="email" type="email" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input v-model="form.password" id="password" type="password" required />
+      </div>
+      <button type="submit" class="login-button">Login</button>
+      <button @click="goToRegister" class="register-button">Register</button>
+      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+    </form>
+  </div>
 </template>
 
 <script>
-import axios from 'axios';
 import { mapActions } from 'vuex';
-
-// const apiBaseUrl = process.env.VUE_APP_API_BASE_URL;
+import LoadingOverlay from '../utils/LoadingOverlay';
+import '../utils/LoadingOverlay.css';
 
 export default {
-    name: 'UserLogin',
-    data() {
-        return {
-            form: {
-                email: '',
-                password: '',
-            },
-            errorMessage: '', // Add error message data property
-            apiBaseUrl: process.env.VUE_APP_API_BASE_URL,
-        };
+  name: 'LoginUser',
+  data() {
+    return {
+      loadingOverlay: null,
+      isLoading: false,
+      fullPage: true,
+      canCancel: true,
+      useSlot: false,
+      loader: 'spinner',
+      color: '#007bff',
+      bgColor: '#ffffff',
+      height: 128,
+      width: 128,
+
+      form: {
+        email: '',
+        password: '',
+      },
+      errorMessage: '',
+    };
+  },
+  methods: {
+    showOverlay() {
+      if (this.loadingOverlay) {
+        this.loadingOverlay.close(); // Close any existing instance
+      }
+      this.loadingOverlay = new LoadingOverlay({
+        text: 'Logging in...',
+        color: '#1b62e1',
+        spinnerType: 'lds-roller'
+      });
+      this.loadingOverlay.init('loading-overlay-container'); // Attach to element with class 'loading-overlay-container'
     },
-    methods: {
-        async login() {
-            try {
-                console.log('Attempting to login with:', this.form);
-                const response = await axios.post(`${this.apiBaseUrl}/login`, this.form);
-                console.log('Login response:', response.data);
-
-                const { token } = response.data;
-                console.log('Token received:', token);
-
-                // Fetch user profile with the token
-                const userResponse = await axios.get(`${this.apiBaseUrl}/profile`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                console.log('User profile response:', userResponse.data);
-                const userData = userResponse.data;
-
-                // Store token and user data securely
-                localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify(userData));
-
-                // Update Vuex store
-                this.$store.dispatch('setUser', userData);
-                this.$store.dispatch('setAuthenticated', true);
-
-                // Redirect user
-                this.$router.push('/'); // Redirect to home or another protected route
-            } catch (error) {
-                console.error('Error logging in:', error);
-                if (error.response) {
-                    console.error('Error response:', error.response.data);
-                }
-                this.errorMessage = 'Login failed. Please check your email and password.';
-            }
-        },
-
-        async login_old() {
-            try {
-                console.log('Attempting to login with:', this.form);
-                const response = await axios.post(`${this.apiBaseUrl}/login`, this.form);
-                console.log('Login response:', response.data);
-
-                const { token } = response.data;
-                console.log('Token received:', token);
-
-                // Assuming userData is fetched separately if not included in the response
-                const userResponse = await axios.get(`${this.apiBaseUrl}/profile`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                console.log('User profile response:', userResponse.data);
-                const userData = userResponse.data;
-
-                localStorage.setItem('user', JSON.stringify(userData)); // Save user data in localStorage
-                localStorage.setItem('token', token);
-
-                // Use Vuex actions to update authentication state and user data
-                this.setUser(userData); // Dispatch setUser action
-                this.setAuthenticated(true); // Dispatch setAuthenticated action
-
-                this.$router.push('/'); // Redirect to home or another protected route
-            } catch (error) {
-                console.error('Error logging in:', error);
-                if (error.response) {
-                    console.error('Error response:', error.response.data);
-                }
-                this.errorMessage = 'Login failed. Please check your email and password.'; // Set error message
-            }
-        },
-        goToRegister() {
-            this.$router.push('/register');
-        },
-        ...mapActions(['setUser', 'setAuthenticated']),
+    hideOverlay() {
+      if (this.loadingOverlay) {
+        this.loadingOverlay.close();
+        this.loadingOverlay = null; // Clear reference
+      }
     },
+    async handleLogin() {
+      this.isLoading = true;
+      this.showOverlay();
+
+      try {
+        const result = await this.login(this.form);
+        if (result.success) {
+          this.$router.push('/'); // Redirect to home or another protected route
+        } else {
+          this.errorMessage = result.message;
+        }
+      } catch (error) {
+        this.errorMessage = 'An error occurred during login.';
+      } finally {
+        this.isLoading = false;
+        this.hideOverlay();
+      }
+
+    },
+    goToRegister() {
+      this.$router.push('/register');
+    },
+    ...mapActions(['login']),
+  },
+  // mounted() {
+  //   this.showOverlay();
+  // },
 };
 </script>
 
 <style scoped>
+.disabled {
+  pointer-events: none;
+}
 .error-message {
-    color: red;
+  color: red;
 }
 </style>

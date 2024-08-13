@@ -1,68 +1,120 @@
 <template>
   <div class="home-container">
     <h2>Nearby Users</h2>
-    <div v-if="users.length === 0">
+
+    <!-- <button @click="triggerTestNotification">Test Notification</button> -->
+    <button @click="pushSuccessNotification">Push Success Notification</button>
+
+    <Notivue v-slot="item">
+      <Notification :item="item" />
+    </Notivue>
+
+    <!-- Show mock cards during initial data loading -->
+    <div v-if="isLoading && numberOfFetchedUsers === 0" class="user-grid">
+      <MockCard v-for="n in 10" :key="n" />
+    </div>
+
+    <div v-else-if="users?.length === 0 && !isLoading">
       <p>No nearby users found.</p>
     </div>
-    <div v-else class="user-grid">
-      <div v-for="user in users" :key="user.id" class="user-card">
-        <img v-if="user.avatars.length" :src="`${this.apiBaseUrl}/${user.avatars[0].url}`" alt="User Avatar"
-          class="user-avatar">
-        <div class="user-info">
-          <p>{{ user.name }}</p>
-          <p>{{ user.location.placeName }}</p>
-        </div>
-        <div class="user-actions">
-          <button @click="likeUser(user.id)" :class="{ 'icon-button': true, 'liked': user.liked }">
-            <i class="fas fa-heart"></i>
-          </button>
-          <button @click="viewDetails(user)" class="icon-button">
-            <i class="fas fa-info-circle"></i>
-          </button>
-        </div>
-      </div>
+
+    <div v-else class="user-grid" :class="{ 'disabled': isDisabled }">
+      <UserCard v-for="user in users" :key="user.id" :user="user" :apiBaseUrl="apiBaseUrl" :likeUser="likeUser"
+        @viewDetails="handleViewDetails" />
+      <!-- Show mock cards while more data is loading -->
+      <MockCard v-for="n in mockCardsCount" :key="n" />
     </div>
-    <div v-if="selectedUser" class="user-details-modal">
-      <div class="user-details-content">
-        <h3>{{ selectedUser.name }}</h3>
-        <p>Location: {{ selectedUser.location.placeName }}</p>
-        <p>Email: {{ selectedUser.email }}</p>
-        <p>Bio: {{ selectedUser.bio }}</p>
-        <button @click="closeDetails" class="close-button">Close</button>
-      </div>
+
+    <!-- <NotificationSlide :notification="notification" :show="showNotification" /> -->
+
+    <div v-if="showSnapIndicator" class="snap-indicator">
+      <div class="snap-line"></div>
     </div>
+
   </div>
 </template>
 
 <script>
-import axios from 'axios';
+import apiClient from '@/api/apiClient';
+import MockCard from './MockCard.vue';
+import UserCard from './UserCard.vue';
+// import NotificationSlide from './NotificationSlide.vue'; // Import the new component
+import { Notivue, Notification, push } from 'notivue'
 
 export default {
   name: 'HomePage',
+  components: {
+    MockCard,
+    UserCard,
+    Notivue,
+    Notification,
+  },
   data() {
     return {
+      numberOfFetchedUsers: 0,
+      showSnapIndicator: false,
+      snapTriggered: false,
+      isLoading: true,
+      fetchedUsers: 0,
       users: [],
       userLocation: {
         latitude: null,
         longitude: null,
       },
+      isDisabled: false,
       selectedUser: null,
-      socket: null, // Add socket property
+      socket: null,
       apiBaseUrl: process.env.VUE_APP_API_BASE_URL,
       socketServerUrl: process.env.VUE_APP_SOCKET_SERVER_URL,
+      page: 1,
+      limit: 8,
+      hasMore: true,
+      radiusKm: 15000,
+      showNotification: false, // Control for notification visibility
+      notification: {}, // Notification data
     };
+  },
+  computed: {
+    mockCardsCount() {
+      return this.isLoading && this.numberOfFetchedUsers > 0 ? this.numberOfFetchedUsers : 0;
+    }
   },
   mounted() {
     this.getUserLocation();
-    this.setupWebSocket(); // Initialize WebSocket when component is mounted
+    this.setupWebSocket();
+    window.addEventListener('scroll', this.checkScroll);
+  },
+  beforeUnmount() {
+    window.removeEventListener('scroll', this.checkScroll);
   },
   methods: {
+    triggerTestNotification() {
+      push('This is a test notification!');
+    },
+    pushSuccessNotification() {
+      push.success('Something good has been pushed!');
+    },
+    // triggerTestNotification() {
+    //   console.log("trigger test notification");
+    //   console.log('showNotification = ', this.showNotification);
+    //   this.notification = {
+    //     message: 'This is a test notification!',
+    //   };
+    //   this.showNotification = true;
+
+    //   // Hide the notification after 5 seconds
+    //   // setTimeout(() => {
+    //   //   this.showNotification = false;
+    //   // }, 5000);
+    // },
     async getUserLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             this.userLocation.latitude = position.coords.latitude;
             this.userLocation.longitude = position.coords.longitude;
+
+            this.isLoading = false;
             await this.fetchNearbyUsers();
           },
           (error) => {
@@ -73,127 +125,102 @@ export default {
         console.warn('Geolocation is not supported by this browser.');
       }
     },
-    async fetchNearbyUsers_old() {
-      try {
-        const response = await axios.get(`${this.apiBaseUrl}/feed`, {
-          params: {
-            latitude: this.userLocation.latitude,
-            longitude: this.userLocation.longitude,
-            radiusKm: 15000 // Example radius in kilometers
-          },
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-
-        this.users = response.data;
-        // await this.checkUserLikes();
-      } catch (error) {
-        console.error('Error fetching nearby users', error);
-      }
-    },
     async fetchNearbyUsers() {
+      if (this.isLoading || !this.hasMore) return;
+
+      this.isLoading = true;
+
       try {
-        const response = await axios.get(`${this.apiBaseUrl}/feed`, {
+        const response = await apiClient.get('/feed', {
           params: {
             latitude: this.userLocation.latitude,
             longitude: this.userLocation.longitude,
-            radiusKm: 15000 // Example radius in kilometers
+            radiusKm: this.radiusKm,
+            page: this.page,
+            limit: this.limit,
           },
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
 
-        this.users = await Promise.all(response.data.map(async (user) => {
-          // Check like status for each user
+        if (response.data.length < this.limit) {
+          this.hasMore = false;
+        }
+
+        this.numberOfFetchedUsers = response.data.length;
+
+        const newUsers = await Promise.all(response.data?.map(async (user) => {
           const liked = await this.isLiked(user.id);
           return {
             ...user,
             liked
           };
         }));
+
+        this.users = [...new Set([...this.users, ...newUsers])];
+
+        this.fetchedUsers = this.users?.length || 0;
+
+        this.page += 1;
       } catch (error) {
         console.error('Error fetching nearby users', error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    checkScroll() {
+      const offset = 220;
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const documentHeight = document.documentElement.offsetHeight;
+
+      if (scrollPosition >= documentHeight - offset && !this.snapTriggered) {
+        this.fetchNearbyUsers();
+        this.snapTriggered = true;
+        this.showSnapIndicator = true;
+      } else if (scrollPosition < documentHeight - offset) {
+        this.snapTriggered = false;
+        this.showSnapIndicator = false;
       }
     },
     setupWebSocket() {
-      // Initialize WebSocket connection
-      this.socket = new WebSocket(this.socketServerUrl); // Replace with your WebSocket server URL
-
-      // Handle incoming messages
+      this.socket = new WebSocket(this.socketServerUrl);
 
       this.socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         console.log('WebSocket message received:', message);
 
-        // Example: Update the users list if the message contains user data
         if (message.action === 'updateUsers') {
           this.users = message.data;
         }
+
+        if (message.action === 'notification') {
+          this.notification = message.data;
+          this.showNotification = true;
+
+          // Hide the notification after 5 seconds
+          setTimeout(() => {
+            this.showNotification = false;
+          }, 5000);
+        }
       };
 
-      // Handle connection open
       this.socket.onopen = () => {
         console.log('WebSocket connection opened');
       };
 
-      // Handle connection close
       this.socket.onclose = () => {
         console.log('WebSocket connection closed');
       };
 
-      // Handle connection errors
       this.socket.onerror = (error) => {
         console.error('WebSocket error:', error);
       };
     },
-    async checkUserLikes_old() {
-      try {
-        const userIds = this.users.map(user => user.id);
-
-        axios.get(`${this.apiBaseUrl}/check-like`, {
-          params: {
-            userIdToCheck: 2 // Replace with dynamic value if needed
-          }
-        })
-          .then(response => {
-            console.log('Like status:', response.data);
-          })
-          .catch(error => {
-            console.error('Error checking like status:', error);
-          });
-
-        const response = await axios.post(`${this.apiBaseUrl}/check-like`, { userIdToCheck: userIds }, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-
-        // Update the local state with like statuses
-        this.users = this.users.map(user => ({
-          ...user,
-          liked: response.data.includes(user.id)
-        }));
-      } catch (error) {
-        console.error('Error checking like status', error);
-      }
-    },
     async isLiked(userIdToCheck) {
       try {
-
-        // axios.get(`http://localhost:3010/check-like`, {
-        //   params: {
-        //     userIdToCheck: 2 // Replace with dynamic value if needed
-        //   }
-        // })
-        //   .then(response => {
-        //     console.log('Like status:', response.data);
-        //   })
-        //   .catch(error => {
-        //     console.error('Error checking like status:', error);
-        //   });
-
-        const response = await axios.get(`${this.apiBaseUrl}/check-like`, {
+        const response = await apiClient.get(`/check-like`, {
           params: { userIdToCheck },
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
 
-        console.log('Like status:', response.data);
+        // console.log('Like status:', response.data);
         return response.data.liked;
       } catch (error) {
         console.error('Error checking like status', error);
@@ -201,9 +228,6 @@ export default {
       }
     },
     async likeUser(userId) {
-      console.log('Liked/unliked user with ID:', userId);
-
-      // Toggle like status in local state
       const user = this.users.find(user => user.id === userId);
 
       if (user) {
@@ -211,44 +235,27 @@ export default {
       }
 
       try {
-
         if (user.liked) {
-          await axios.post(`${this.apiBaseUrl}/like`, { likedUserId: userId }, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          });
+          await apiClient.get(`/like`, { likedUserId: userId }, {});
         } else {
-          await axios.post(`${this.apiBaseUrl}/like`, { likedUserId: userId }, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          });
+          await apiClient.get(`/like`, { likedUserId: userId }, {});
         }
 
-        // Optionally update the server-side state or re-fetch users
         await this.fetchNearbyUsers();
       } catch (error) {
         console.error('Error liking/unliking user', error);
       }
-      // Send WebSocket message to update the like status
-      // if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      //   this.socket.send(JSON.stringify({
-      //     action: user.liked ? 'like' : 'unlike',
-      //     userId
-      //   }));
-      // }
     },
-    viewDetails(user) {
+    handleViewDetails(user) {
       this.selectedUser = user;
-    },
-    closeDetails() {
-      this.selectedUser = null;
     }
   }
 };
 </script>
 
-
 <style scoped>
-.home-container {
-  padding: 20px;
+.disabled {
+  pointer-events: none;
 }
 
 .user-grid {
@@ -257,91 +264,33 @@ export default {
   gap: 20px;
 }
 
-.user-card {
-  border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  background-color: #fff;
-}
-
-.user-avatar {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  margin-bottom: 10px;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.user-info p {
-  margin: 5px 0;
-}
-
-.user-actions {
-  display: flex;
-  justify-content: space-around;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.icon-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.5em;
-  color: #888;
-  /* Default icon color */
-  transition: color 0.3s ease;
-}
-
-.icon-button:hover {
-  color: #007bff;
-}
-
-.icon-button.liked {
-  color: #e74c3c;
-  /* Color for liked state */
-}
-
-.user-details-modal {
+.snap-indicator {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.user-details-content {
-  background: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.close-button {
-  background: none;
-  border: 1px solid #111;
-  background-color: #7f7d7d;
-  padding: 5px 10px;
-  cursor: pointer;
-  margin-top: 10px;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 5px;
+  background-color: #ccc;
   border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease-in-out;
 }
 
-.close-button:hover {
-  background-color: #999797;
+.snap-indicator .snap-line {
+  width: 30px;
+  height: 3px;
+  background-color: #000;
+  border-radius: 2px;
+}
+
+.snap-indicator.show {
+  transform: translateX(-50%) translateY(-5px);
+}
+
+.home-container {
+  padding: 20px;
 }
 </style>

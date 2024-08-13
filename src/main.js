@@ -1,51 +1,52 @@
-// import { createApp } from 'vue';
-// import App from './App.vue';
-// import router from './router';
-// import store from './store';
-
 import './assets/styles.css';
 
-// createApp(App)
-//   .use(store)
-//   .use(router)
-//   .mount('#app');
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import store from './store'
+import { GoogleMap } from 'vue3-google-map'
+import '@fortawesome/fontawesome-free/css/all.css'
+import AsyncComputed from 'vue-async-computed'
+import { createNotivue } from 'notivue'
+import './assets/notivue/notifications.css' // Only needed if using built-in notifications
+import './assets/notivue/animations.css' // Only needed if using built-in animations
 
+const app = createApp(App)
+const notivue = createNotivue({
+    position: 'top-right',
+    limit: 4,
+    enqueue: true,
+    avoidDuplicates: true,
+    notifications: {
+        global: {
+            duration: 10000
+        }
+    }
+})
 
-// import { createApp } from 'vue';
-// import App from './App.vue';
-// import router from './router';
-// import store from './store';
-// import VueGoogleMaps from '@fawmi/vue-google-maps';
+app.component('GoogleMap', GoogleMap)
+app.use(store)
+app.use(router)
+app.use(AsyncComputed)
 
-// import './assets/styles.css';
+app.directive('click-outside', {
+    beforeMount(el, binding) {
+        el.clickOutsideEvent = function (event) {
+            if (!(el === event.target || el.contains(event.target))) {
+                binding.value(event);
+            }
+        };
+        document.body.addEventListener('click', el.clickOutsideEvent);
+    },
+    unmounted(el) {
+        document.body.removeEventListener('click', el.clickOutsideEvent);
+    }
+});
 
-// const apiKey = 'AIzaSyDB3-FudwYPeU9P2J8tG_YV58fjsEdagwk';
+app.use(notivue)
 
-// createApp(App)
-//   .use(store)
-//   .use(router)
-//   .use(VueGoogleMaps, {
-//     load: {
-//       key: apiKey,
-//       libraries: 'places', 
-//     },
-//   })
-//   .mount('#app');
+// Place it at THE END of the app.use() chain, just right before app.mount()
+export const push = createNotivue(app)
 
-import { createApp } from 'vue';
-import App from './App.vue';
-import router from './router';
-import store from './store';
-import { GoogleMap } from 'vue3-google-map';
-
-import '@fortawesome/fontawesome-free/css/all.css';
-
-const app = createApp(App);
-
-app.component('GoogleMap', GoogleMap);
-
-app.use(store);
-app.use(router);
-
-app.mount('#app');
+app.mount('#app')
 

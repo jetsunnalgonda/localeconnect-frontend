@@ -1,69 +1,71 @@
 <template>
-    <div class="profile-container">
-        <!-- Overlay container -->
-        <h2>Update Profile</h2>
-        <form @submit.prevent="updateProfile" class="loading-overlay-container" :class="{ 'disabled': isLoading }">
+    <v-app>
+      <v-container>
+        <!-- Overlay with Loading Spinner -->
+        <v-overlay :value="isLoading" absolute>
+          <v-progress-circular indeterminate color="primary" size="64" width="8"></v-progress-circular>
+        </v-overlay>
+  
+        <!-- Profile Update Form -->
+        <v-card class="pa-4">
+          <v-card-title>
+            <h2>Update Profile</h2>
+          </v-card-title>
+  
+          <v-form @submit.prevent="updateProfile">
             <!-- Profile Picture Section -->
-            <div class="profile-pic-container" @click="triggerFileInput">
-                <img :src="temporaryAvatarUrl" alt="Avatar Preview" class="profile-pic" />
-                <input type="file" @change="handleAvatarChange" ref="fileInput" style="display: none;" />
-            </div>
-
+            <v-avatar size="150" class="mx-auto">
+              <v-img :src="temporaryAvatarUrl" @click="triggerFileInput"></v-img>
+              <input type="file" @change="handleAvatarChange" ref="fileInput" style="display: none;" />
+            </v-avatar>
+  
             <!-- Form Fields -->
-            <div class="form-group">
-                <label>Name:</label>
-                <input v-model="form.name" type="text" />
-            </div>
-            <div class="form-group">
-                <label>Email:</label>
-                <input v-model="form.email" type="email" />
-            </div>
-            <div class="form-group">
-                <label>Bio:</label>
-                <textarea v-model="form.bio"></textarea>
-            </div>
-            <div class="form-group">
-                <label>Location:</label>
-                <button @click="openMapPopup" type="button">Select Location</button>
-                <p v-if="form.location.placeName">
-                    Place Name: {{ form.location.placeName }}
-                </p>
-                <MapPopup v-if="showMapPopup" :mapVisible="showMapPopup" @close="closeMapPopup"
+            <v-text-field v-model="form.name" label="Name"></v-text-field>
+            <v-text-field v-model="form.email" label="Email" type="email"></v-text-field>
+            <v-textarea v-model="form.bio" label="Bio"></v-textarea>
+  
+            <v-menu v-model="showMapPopup" :close-on-content-click="false">
+              <template v-slot:activator="{ on }">
+                <v-btn v-on="on" @click="openMapPopup">Select Location</v-btn>
+              </template>
+              <v-card>
+                <v-card-title>
+                  Location
+                </v-card-title>
+                <v-card-text>
+                  <p v-if="form.location.placeName">Place Name: {{ form.location.placeName }}</p>
+                  <MapPopup v-if="showMapPopup" :mapVisible="showMapPopup" @close="closeMapPopup"
                     @location-selected="updateLocation" :currentLocation="form.location" />
-            </div>
-
+                </v-card-text>
+              </v-card>
+            </v-menu>
+  
             <!-- Save Button -->
-            <div>
-                <button type="submit" class="save-button" :disabled="isLoading">
-                    <span v-if="isLoading">Saving...</span>
-                    <span v-else>Save</span>
-                </button>
-            </div>
-        </form>
-
-        <!-- Avatar Management Section -->
-        <div class="avatar-management" v-if="user && user.avatars && user.avatars.length">
-            <h3>Your Avatars</h3>
-            <div class="avatar-gallery">
-                <img v-for="avatar in user.avatars" :key="avatar.id" :src="avatar.presignedUrl || '/default-avatar.jpg'"
-                    alt="Avatar" class="avatar" @click="deleteAvatar(avatar.id)" />
-            </div>
-        </div>
-    </div>
-</template>
+            <v-btn type="submit" :loading="isLoading" color="primary">Save</v-btn>
+          </v-form>
+  
+          <!-- Avatar Management Section -->
+          <v-card v-if="user && user.avatars && user.avatars.length" class="mt-4">
+            <v-card-title>
+              <h3>Your Avatars</h3>
+            </v-card-title>
+            <v-card-text>
+              <v-avatar v-for="avatar in user.avatars" :key="avatar.id" class="ma-2" size="60" @click="deleteAvatar(avatar.id)">
+                <v-img :src="avatar.presignedUrl || '/default-avatar.jpg'" />
+              </v-avatar>
+            </v-card-text>
+          </v-card>
+        </v-card>
+      </v-container>
+    </v-app>
+  </template>
 
 <script>
-import { getPresignedUrl } from '../utils/apiService';
+import { getPresignedUrl } from '../../utils/apiService';
 import axios from 'axios';
-
-import apiClient from '@/api/apiClient';
-
 import { mapGetters, mapActions } from 'vuex';
 import MapPopup from './MapPopup.vue';
 import { useRouter } from 'vue-router';
-
-import LoadingOverlay from '../utils/LoadingOverlay';
-import '../utils/LoadingOverlay.css';
 
 // const apiBaseUrl = process.env.VUE_APP_API_BASE_URL;
 
@@ -78,8 +80,7 @@ export default {
     },
     data() {
         return {
-            loadingOverlay: null,
-            isLoading: false,
+            isLoading: true,
             fullPage: true,
             canCancel: true,
             useSlot: false,
@@ -116,23 +117,6 @@ export default {
     },
     methods: {
         ...mapActions(['setUser', 'setAuthenticated']),
-        showOverlay() {
-            if (this.loadingOverlay) {
-                this.loadingOverlay.close(); // Close any existing instance
-            }
-            this.loadingOverlay = new LoadingOverlay({
-                text: 'Updating profile...',
-                color: '#1b62e1',
-                spinnerType: 'lds-roller'
-            });
-            this.loadingOverlay.init('loading-overlay-container'); // Attach to element with class 'loading-overlay-container'
-        },
-        hideOverlay() {
-            if (this.loadingOverlay) {
-                this.loadingOverlay.close();
-                this.loadingOverlay = null; // Clear reference
-            }
-        },
         async fetchUserData() {
             // this.loading = true;
             console.log('Fetching user data...');
@@ -194,7 +178,7 @@ export default {
         },
         async updateProfile() {
             this.isLoading = true;
-            this.showOverlay();
+
             try {
                 const formData = { ...this.form };
                 console.log(formData.avatars);
@@ -207,17 +191,22 @@ export default {
                     const avatarFormData = new FormData();
                     avatarFormData.append('avatars', this.temporaryAvatar);
 
-                    await apiClient.put('/profile', avatarFormData, {
+                    await axios.put(`${this.apiBaseUrl}/profile`, avatarFormData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
+                            Authorization: `Bearer ${localStorage.getItem('token')}`,
                         },
                     });
 
-                    const response = await apiClient.get('/profile');
+                    const response = await axios.get(`${this.apiBaseUrl}/profile`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                    });
                     formData.avatars = response.data.avatars;
                 }
 
-                const response = await apiClient.put('/profile', formData);
+                const response = await axios.put(`${this.apiBaseUrl}/profile`, formData, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                });
 
                 this.setUser(response.data);
                 this.fetchUserData();
@@ -232,7 +221,6 @@ export default {
                 }
             } finally {
                 this.isLoading = false;
-                this.hideOverlay();
             }
         },
         async deleteAvatar(avatarId) {
@@ -272,20 +260,12 @@ export default {
         },
     },
     created() {
-        // console.log(typeof $); // Should output 'function' if jQuery is loaded
-        // console.log('jQuery:', $);
-        // console.log('waitMe:', $.fn.waitMe);
         this.fetchUserData();
     },
 };
 </script>
 
 <style scoped>
-.disabled {
-    opacity: 0.6;
-    pointer-events: none;
-}
-
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -294,11 +274,6 @@ export default {
     to {
         opacity: 1;
     }
-}
-
-.loading-overlay-container {
-    position: relative;
-    /* Ensure that LoadingOverlay is positioned correctly */
 }
 
 .profile-container {
