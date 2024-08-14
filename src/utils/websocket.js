@@ -15,8 +15,8 @@ export function initializeWebSocket(userId) {
   };
 
   ws.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    handleSocketMessage(message);
+    const parsedMessage = JSON.parse(event.data);
+    handleSocketMessage(parsedMessage); //
   };
 
   ws.onclose = () => {
@@ -30,7 +30,7 @@ export function initializeWebSocket(userId) {
 
 export function handleSocketMessage(message) {
   try {
-    const parsedMessage = JSON.parse(message);
+    const parsedMessage = message //JSON.parse(message);
 
     if (parsedMessage && parsedMessage.data) {
       const { action, data } = parsedMessage;
