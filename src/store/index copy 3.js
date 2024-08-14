@@ -1,6 +1,7 @@
 import { createStore } from 'vuex';
 import axios from 'axios';
 
+// Retrieve user data from localStorage
 const userFromStorage = localStorage.getItem('user');
 const parsedUser = userFromStorage ? JSON.parse(userFromStorage) : null;
 
@@ -18,9 +19,23 @@ export default createStore({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
     },
+    clearTokens(state) {
+      state.accessToken = null;
+      state.refreshToken = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    },
     setUser(state, user) {
       state.user = user;
       localStorage.setItem('user', JSON.stringify(user));
+    },
+    setAuthenticated(state, status) {
+      state.isAuthenticated = status;
+      if (!status) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+      }
     },
     logoutUser(state) {
       state.user = null;
@@ -30,14 +45,6 @@ export default createStore({
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-    },
-    setAuthenticated(state, status) {
-      state.isAuthenticated = status;
-      if (!status) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-      }
     },
   },
   actions: {
@@ -70,59 +77,36 @@ export default createStore({
         console.error('Logout failed:', error);
       }
     },
-    async refreshToken({ commit, state }) {
-      try {
-        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/refresh`, {
-          token: state.refreshToken,
-        });
-        const { token, refreshToken } = response.data;
-
-        // Update tokens in state and localStorage
-        commit('setTokens', { accessToken: token, refreshToken });
-
-        // Set authentication status to true after refreshing tokens
-        commit('setAuthenticated', true);
-
-        // Return true to indicate that tokens were successfully refreshed
-        return true;
-      } catch (error) {
-        console.error('Failed to refresh token:', error);
-        commit('logoutUser');
-        // Redirect to login if refresh fails
-        // this.$router.push('/login');
-        alert('Your session has expired. Please log in again.');
-        // Return false to indicate failure
-        return false;
-      }
-    },
     async fetchUser({ commit, dispatch }) {
       try {
         const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/profile`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         commit('setUser', response.data);
-        // Ensure authentication status is true after fetching user
-        commit('setAuthenticated', true);
       } catch (error) {
         console.error('Error fetching user:', error);
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           // Attempt to refresh the token if it's expired
-          const refreshed = await dispatch('refreshToken');
-          if (refreshed) {
-            // Retry fetching the user after refreshing tokens
-            await dispatch('fetchUser');
-          } else {
-            // If token refresh fails, handle logout
-            commit('logoutUser');
-            // this.$router.push('/login');
-            alert('Your session has expired. Please log in again.');
-          }
-        } else {
-          // For other errors, handle logout
-          commit('logoutUser');
-          // this.$router.push('/login');
-          alert('An error occurred. Please log in again.');
+          await dispatch('refreshToken');
+          dispatch('fetchUser'); // Retry fetching the user
         }
+      }
+    },
+    async refreshToken({ commit, state }) {
+      try {
+        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/refresh`, {
+          token: state.refreshToken,
+        });
+        commit('setTokens', {
+          accessToken: response.data.token,
+          refreshToken: response.data.refreshToken
+        });
+      } catch (error) {
+        console.log('Failed to refresh token:', error);
+        commit('logoutUser');
+        // Redirect to login if refresh fails
+        // this.$router.push('/login');
+        alert('Your session has expired. Please log in again.');
       }
     },
     startTokenRefresh({ dispatch }) {

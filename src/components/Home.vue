@@ -5,10 +5,11 @@
     <!-- <button @click="triggerTestNotification">Test Notification</button> -->
     <button @click="pushSuccessNotification">Push Success Notification</button>
 
+    <button @click="refreshAndFetchUser">Refresh Tokens and Fetch User</button>
+
     <Notivue v-slot="item">
       <Notification :item="item" />
     </Notivue>
-
     <!-- Show mock cards during initial data loading -->
     <div v-if="isLoading && numberOfFetchedUsers === 0" class="user-grid">
       <MockCard v-for="n in 10" :key="n" />
@@ -38,6 +39,11 @@ import { mapGetters } from 'vuex';
 import { initializeWebSocket, sendWebSocketMessage } from '@/utils/websocket';
 
 import { Notivue, Notification, push } from 'notivue'
+// import store from '../store'
+import { mapActions } from 'vuex';
+import refreshTokens from '@/api/RefreshTokens';
+
+import axios from 'axios';
 
 export default {
   name: 'HomePage',
@@ -87,6 +93,45 @@ export default {
     window.removeEventListener('scroll', this.checkScroll);
   },
   methods: {
+    ...mapActions(['refreshToken', 'fetchUser']),
+
+    async refreshAndFetchUser() {
+      try {
+        // Refresh tokens and get the new access token
+        const accessToken = await refreshTokens();
+
+        // Use the new access token to make an authenticated request
+        const response = await axios.get('/profile', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        console.log('Protected data:', response.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        // Handle the error, such as redirecting to the login page
+      }
+      // try {
+      //   // Refresh tokens
+      //   await this.refreshToken();
+
+      //   // Fetch user data after refreshing tokens
+      //   await this.fetchUser();
+
+      //   console.log('Tokens refreshed and user data fetched successfully.');
+      // } catch (error) {
+      //   console.error('Error during token refresh and user fetch:', error);
+      // }
+    },
+    async refreshAndFetchUser2() {
+      // await store.dispatch('refreshToken');
+      // await store.dispatch('fetchUser');
+
+      // Retry the original request with the new token
+      const token = localStorage.getItem('token'); // Get updated token
+      console.log(token);
+    },
     triggerTestNotification() {
       push('This is a test notification!');
     },

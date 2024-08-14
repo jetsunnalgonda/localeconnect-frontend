@@ -1,15 +1,17 @@
+// In store/index.js
 import { createStore } from 'vuex';
 import axios from 'axios';
 
+// Retrieve user data from localStorage
 const userFromStorage = localStorage.getItem('user');
 const parsedUser = userFromStorage ? JSON.parse(userFromStorage) : null;
 
 export default createStore({
   state: {
-    user: parsedUser,
+    user: parsedUser, // Initialize user data from localStorage
     isAuthenticated: !!localStorage.getItem('token'),
-    accessToken: localStorage.getItem('token') || '',
-    refreshToken: localStorage.getItem('refreshToken') || '',
+    accessToken: localStorage.getItem('token') || '', // Store the access token
+    refreshToken: localStorage.getItem('refreshToken') || '', // Store the refresh token
   },
   mutations: {
     setTokens(state, { accessToken, refreshToken }) {
@@ -18,26 +20,40 @@ export default createStore({
       localStorage.setItem('token', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
     },
+    clearTokens(state) {
+      state.accessToken = null;
+      state.refreshToken = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    },
     setUser(state, user) {
       state.user = user;
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(user)); // Save user data in localStorage
+    },
+    setAuthenticated(state, status) {
+      state.isAuthenticated = status;
+      if (!status) {
+        localStorage.removeItem('user'); // Clear user data if not authenticated
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+      }
+    },
+    setToken(state, token) {
+      state.accessToken = token;
+      localStorage.setItem('token', token);
+    },
+    setRefreshToken(state, refreshToken) {
+      state.refreshToken = refreshToken;
+      localStorage.setItem('refreshToken', refreshToken);
     },
     logoutUser(state) {
       state.user = null;
-      state.accessToken = '';
+      state.token = '';
       state.refreshToken = '';
       state.isAuthenticated = false;
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
-    },
-    setAuthenticated(state, status) {
-      state.isAuthenticated = status;
-      if (!status) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-      }
     },
   },
   actions: {
@@ -55,8 +71,9 @@ export default createStore({
         await dispatch('fetchUser');
 
         // Set authentication status
-        commit('setAuthenticated', true);
+        await dispatch('setAuthenticated', true);
 
+        // Return successful result
         return { success: true };
       } catch (error) {
         console.error('Error logging in:', error);
@@ -68,6 +85,22 @@ export default createStore({
         commit('logoutUser');
       } catch (error) {
         console.error('Logout failed:', error);
+
+      }
+    },
+    async fetchUser({ commit }) {
+      try {
+        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/profile`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        commit('setUser', response.data);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          // Attempt to refresh the token if it's expired
+          await this.dispatch('refreshToken');
+          this.dispatch('fetchUser'); // Retry fetching the user
+        }
       }
     },
     async refreshToken({ commit, state }) {
@@ -75,55 +108,21 @@ export default createStore({
         const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/refresh`, {
           token: state.refreshToken,
         });
-        const { token, refreshToken } = response.data;
-
-        // Update tokens in state and localStorage
-        commit('setTokens', { accessToken: token, refreshToken });
-
-        // Set authentication status to true after refreshing tokens
-        commit('setAuthenticated', true);
-
-        // Return true to indicate that tokens were successfully refreshed
-        return true;
+        commit('setAccessToken', response.data.token);
+        commit('setRefreshToken', response.data.refreshToken);
       } catch (error) {
-        console.error('Failed to refresh token:', error);
-        commit('logoutUser');
+        console.log('Failed to refresh token:', error);
+        commit('logout');
         // Redirect to login if refresh fails
-        // this.$router.push('/login');
+        this.$router.push('/login');
         alert('Your session has expired. Please log in again.');
-        // Return false to indicate failure
-        return false;
       }
     },
-    async fetchUser({ commit, dispatch }) {
-      try {
-        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/profile`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        commit('setUser', response.data);
-        // Ensure authentication status is true after fetching user
-        commit('setAuthenticated', true);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-          // Attempt to refresh the token if it's expired
-          const refreshed = await dispatch('refreshToken');
-          if (refreshed) {
-            // Retry fetching the user after refreshing tokens
-            await dispatch('fetchUser');
-          } else {
-            // If token refresh fails, handle logout
-            commit('logoutUser');
-            // this.$router.push('/login');
-            alert('Your session has expired. Please log in again.');
-          }
-        } else {
-          // For other errors, handle logout
-          commit('logoutUser');
-          // this.$router.push('/login');
-          alert('An error occurred. Please log in again.');
-        }
-      }
+    setUser({ commit }, user) {
+      commit('setUser', user);
+    },
+    setAuthenticated({ commit }, status) {
+      commit('setAuthenticated', status);
     },
     startTokenRefresh({ dispatch }) {
       const refreshInterval = 15 * 60 * 1000; // Refresh every 15 minutes
@@ -135,6 +134,6 @@ export default createStore({
   getters: {
     user: (state) => state.user,
     isAuthenticated: (state) => state.isAuthenticated,
-    accessToken: (state) => state.accessToken,
+    token: (state) => state.token,
   },
 });
