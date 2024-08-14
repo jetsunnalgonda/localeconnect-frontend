@@ -28,47 +28,6 @@ export function initializeWebSocket(userId) {
   };
 }
 
-export function setupWebSocket() {
-  this.socket = new WebSocket(this.socketServerUrl);
-
-  this.socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    console.log('WebSocket message received:', message);
-
-    if (message.action === 'updateUsers') {
-      this.users = message.data;
-    }
-
-    if (message.action === 'notification') {
-      this.notification = message.data;
-      this.showNotification = true;
-
-      // Hide the notification after 5 seconds
-      setTimeout(() => {
-        this.showNotification = false;
-      }, 5000);
-    }
-  };
-
-  this.socket.onopen = () => {
-    console.log('WebSocket connection opened');
-  };
-
-  this.socket.onclose = () => {
-    console.log('WebSocket connection closed');
-  };
-
-  this.socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
-}
-
-export function sendWebSocketMessage(action, data) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ action, data }));
-  }
-}
-
 export function handleSocketMessage(message) {
   try {
     const parsedMessage = JSON.parse(message);
@@ -115,6 +74,48 @@ export function handleSocketMessage(message) {
     console.error('Failed to parse WebSocket message:', error, message);
   }
 }
+
+export function setupWebSocket() {
+  this.socket = new WebSocket(this.socketServerUrl);
+
+  this.socket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    console.log('WebSocket message received:', message);
+
+    if (message.action === 'updateUsers') {
+      this.users = message.data;
+    }
+
+    if (message.action === 'notification') {
+      this.notification = message.data;
+      this.showNotification = true;
+
+      // Hide the notification after 5 seconds
+      setTimeout(() => {
+        this.showNotification = false;
+      }, 5000);
+    }
+  };
+
+  this.socket.onopen = () => {
+    console.log('WebSocket connection opened');
+  };
+
+  this.socket.onclose = () => {
+    console.log('WebSocket connection closed');
+  };
+
+  this.socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+}
+
+export function sendWebSocketMessage(action, data) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ action, data }));
+  }
+}
+
 
 export function handleSocketMessage_old(event) {
   let message;
