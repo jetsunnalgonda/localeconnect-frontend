@@ -110,9 +110,19 @@ export function setupWebSocket() {
   };
 }
 
+// export function sendWebSocketMessage(action, data) {
+//   if (ws && ws.readyState === WebSocket.OPEN) {
+//     ws.send(JSON.stringify({ action, data }));
+//   }
+// }
+
 export function sendWebSocketMessage(action, data) {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ action, data }));
+    const message = JSON.stringify({ action, data });
+    ws.send(message);
+    console.log('Sent WebSocket message:', message);
+  } else {
+    console.error('WebSocket connection is not open');
   }
 }
 
