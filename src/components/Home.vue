@@ -3,9 +3,9 @@
     <h2>Nearby Users</h2>
 
     <!-- <button @click="triggerTestNotification">Test Notification</button> -->
-    <button @click="pushSuccessNotification">Push Success Notification</button>
+    <!-- <button @click="pushSuccessNotification">Push Success Notification</button>
 
-    <button @click="refreshAndFetchUser">Refresh Tokens and Fetch User</button>
+    <button @click="refreshAndFetchUser">Refresh Tokens and Fetch User</button> -->
 
     <Notivue v-slot="item">
       <Notification :item="item" :icons="myIcons" />
