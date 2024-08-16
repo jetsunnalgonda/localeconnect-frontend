@@ -8,7 +8,7 @@
     <button @click="refreshAndFetchUser">Refresh Tokens and Fetch User</button>
 
     <Notivue v-slot="item">
-      <Notification :item="item" />
+      <Notification :item="item" :icons="myIcons" />
     </Notivue>
     <!-- Show mock cards during initial data loading -->
     <div v-if="isLoading && numberOfFetchedUsers === 0" class="user-grid">
@@ -39,6 +39,9 @@ import { mapGetters } from 'vuex';
 import { initializeWebSocket, sendWebSocketMessage } from '@/utils/websocket';
 
 import { Notivue, Notification, push } from 'notivue'
+import { markRaw } from 'vue'
+import HeartIcon from './icons/HeartIcon.vue';
+import CloseIcon from './icons/CloseIcon.vue';
 // import store from '../store'
 import { mapActions } from 'vuex';
 import refreshTokens from '@/api/RefreshTokens';
@@ -55,6 +58,7 @@ export default {
   },
   data() {
     return {
+      notify: null,
       numberOfFetchedUsers: 0,
       showSnapIndicator: false,
       snapTriggered: false,
@@ -76,6 +80,12 @@ export default {
       radiusKm: 15000,
       showNotification: false,
       notification: {},
+      myIcons: {
+        success: markRaw(HeartIcon), 
+        error: '⛔️',  
+        // promise: null, 
+        close: markRaw(CloseIcon),   
+      }
     };
   },
   computed: {
@@ -85,8 +95,9 @@ export default {
     }
   },
   mounted() {
+    // this.notify = useNotivue();
     this.getUserLocation();
-    initializeWebSocket(this.user.id);
+    initializeWebSocket(this.user.id, push.success);
     window.addEventListener('scroll', this.checkScroll);
   },
   beforeUnmount() {
@@ -136,7 +147,12 @@ export default {
       push('This is a test notification!');
     },
     pushSuccessNotification() {
-      push.success('Something good has been pushed!');
+      push.success({
+        title: 'Profile Liked!',
+        message: `Someone liked your profile.`,
+        type: 'success',
+      });
+      // push.success('Something good has been pushed!');
     },
     async getUserLocation() {
       if (navigator.geolocation) {
@@ -305,5 +321,8 @@ export default {
 
 .home-container {
   padding: 20px;
+}
+.success {
+  color: rgb(240, 100, 100);
 }
 </style>
