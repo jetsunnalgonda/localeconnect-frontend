@@ -46,7 +46,6 @@ import CloseIcon from './icons/CloseIcon.vue';
 // import store from '../store'
 import { mapActions } from 'vuex';
 import refreshTokens from '@/api/RefreshTokens';
-import ActionQueue from '@/utils/ActionQueue';
 
 import axios from 'axios';
 
@@ -60,7 +59,6 @@ export default {
   },
   data() {
     return {
-      likeQueue: new ActionQueue(),
       notify: null,
       numberOfFetchedUsers: 0,
       showSnapIndicator: false,
@@ -148,12 +146,6 @@ export default {
               title: 'New Follower!',
               message: `${data.userName} started following you.`,
             });
-            break;
-          case 'UPDATE_LIKE_ID':
-            console.log('UPDATE_LIKE_ID notification received');
-            break;
-          case 'REMOVE_LIKE':
-            console.log('UPDATE_LIKE_ID notification received');
             break;
 
           // Add more cases as needed for other actions
@@ -273,55 +265,45 @@ export default {
         return false;
       }
     },
-    likeUser(userId) {
+    async likeUser(userId) {
+      console.log('Liker user id:', this.user.id);
+      console.log('User id to be liked:', userId);
+      if (!this.user || !this.user.name) {
+        console.error('User data is not available');
+        return;
+      }
+      const user = this.users.find(user => user.id === userId);
 
-      this.likeQueue.enqueue(async () => {
-        console.log('Liker user id:', this.user.id);
-        console.log('User id to be liked/disliked:', userId);
+      if (user) {
+        user.liked = !user.liked;
+      }
 
-        if (!this.user || !this.user.name) {
-          console.error('User data is not available');
-          return;
-        }
+      // Send a WebSocket message for the like action
+      if (user.liked) {
+        websocketService.sendMessage('LIKE', { userId, userName: this.user.name });
+      }
 
-        const user = this.users.find(user => user.id === userId);
+      try {
+        // const likeMessage = user.liked ? `${this.user.name} liked your profile.` : null;
 
+        // Send the like/unlike action to the server
+        await apiClient.post(`/like`, { likedUserId: userId });
+
+        // Send the WebSocket notification only when a user is liked
+        // if (user.liked) {
+        //   sendNotification(user.id, 'LIKE', this.user.name);
+        // }
+
+        // Optionally refresh the nearby users list
+        // await this.fetchNearbyUsers();
+      } catch (error) {
+        console.error('Home.vue: Error liking/unliking user', error);
+
+        // Revert the UI change if there was an error
         if (user) {
-          user.liked = !user.liked;  // Toggle like status
+          user.liked = !user.liked;
         }
-
-        try {
-          if (user.liked) {
-            const tempId = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-            // Send WebSocket message for like
-            websocketService.sendMessage('LIKE', { userId, userName: this.user.name, tempId: tempId });
-
-            // Perform database operation to create the like record
-            const response = await apiClient.post('/like', { likedUserId: userId });
-
-            // Optionally send an update with actual likeId after creation
-            websocketService.sendMessage('UPDATE_LIKE_ID', { userId, tempId: tempId, referenceId: response.data.likeId });
-          } else {
-            // Perform dislike action (delete the like record from the database)
-            // await apiClient.post('/dislike', { dislikedUserId: userId });
-            const response = await apiClient.post('/like', { likedUserId: userId });
-
-            // Send WebSocket message to remove the notification
-            websocketService.sendMessage('REMOVE_LIKE', { userId, referenceId: response.data.likeId });
-          }
-
-          // Optionally refresh the nearby users list
-          await this.fetchNearbyUsers();
-        } catch (error) {
-          console.error('Home.vue: Error liking/unliking user', error);
-
-          // Revert the UI change if there was an error
-          if (user) {
-            user.liked = !user.liked;
-          }
-        }
-
-      });
+      }
     },
 
     handleViewDetails(user) {

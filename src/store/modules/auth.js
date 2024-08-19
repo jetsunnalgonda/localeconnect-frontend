@@ -1,10 +1,10 @@
-import { createStore } from 'vuex';
-import axios from 'axios';
+import apiClient from '@/api/apiClient'; // Use apiClient instead of axios
 
 const userFromStorage = localStorage.getItem('user');
 const parsedUser = userFromStorage ? JSON.parse(userFromStorage) : null;
 
-export default createStore({
+export default {
+  namespaced: true,
   state: {
     user: parsedUser,
     isAuthenticated: !!localStorage.getItem('token'),
@@ -43,12 +43,10 @@ export default createStore({
   actions: {
     async login({ commit, dispatch }, form) {
       try {
-        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/login`, form);
+        const response = await apiClient.post(`/login`, form);
         const { token, refreshToken } = response.data;
-        console.log('Access token received:', token);
-        console.log('Refresh token received:', refreshToken);
 
-        // Store tokens using Vuex mutations
+        // Store tokens
         commit('setTokens', { accessToken: token, refreshToken });
 
         // Fetch user profile
@@ -57,22 +55,20 @@ export default createStore({
         // Set authentication status
         commit('setAuthenticated', true);
 
+        // Start token refresh loop
+        dispatch('startTokenRefresh');
+
         return { success: true };
       } catch (error) {
-        console.error('Error logging in:', error);
         return { success: false, message: 'Login failed. Please check your email and password.' };
       }
     },
     async logout({ commit }) {
-      try {
-        commit('logoutUser');
-      } catch (error) {
-        console.error('Logout failed:', error);
-      }
+      commit('logoutUser');
     },
     async refreshToken({ commit, state }) {
       try {
-        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/refresh`, {
+        const response = await apiClient.post(`/refresh`, {
           token: state.refreshToken,
         });
         const { token, refreshToken } = response.data;
@@ -80,49 +76,23 @@ export default createStore({
         // Update tokens in state and localStorage
         commit('setTokens', { accessToken: token, refreshToken });
 
-        // Set authentication status to true after refreshing tokens
+        // Set authentication status
         commit('setAuthenticated', true);
-
-        // Return true to indicate that tokens were successfully refreshed
         return true;
       } catch (error) {
-        console.error('Failed to refresh token:', error);
         commit('logoutUser');
-        // Redirect to login if refresh fails
-        // this.$router.push('/login');
         alert('Your session has expired. Please log in again.');
-        // Return false to indicate failure
         return false;
       }
     },
-    async fetchUser({ commit, dispatch }) {
+    async fetchUser({ commit }) {
       try {
-        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/profile`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
+        const response = await apiClient.get(`/profile`);
         commit('setUser', response.data);
-        // Ensure authentication status is true after fetching user
         commit('setAuthenticated', true);
       } catch (error) {
-        console.error('Error fetching user:', error);
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-          // Attempt to refresh the token if it's expired
-          const refreshed = await dispatch('refreshToken');
-          if (refreshed) {
-            // Retry fetching the user after refreshing tokens
-            await dispatch('fetchUser');
-          } else {
-            // If token refresh fails, handle logout
-            commit('logoutUser');
-            // this.$router.push('/login');
-            alert('Your session has expired. Please log in again.');
-          }
-        } else {
-          // For other errors, handle logout
-          commit('logoutUser');
-          // this.$router.push('/login');
-          alert('An error occurred. Please log in again.');
-        }
+        commit('logoutUser');
+        alert('An error occurred. Please log in again.');
       }
     },
     startTokenRefresh({ dispatch }) {
@@ -137,4 +107,4 @@ export default createStore({
     isAuthenticated: (state) => state.isAuthenticated,
     accessToken: (state) => state.accessToken,
   },
-});
+};

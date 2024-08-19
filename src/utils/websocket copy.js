@@ -1,11 +1,11 @@
-// src/utils/websocket.js - Deprecated
+// src/utils/websocket.js
 
 let ws = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 5;
 const reconnectDelay = 2000; // Delay in milliseconds before reconnecting
 
-function createWebSocket(userId, notifyCallback) {
+function createWebSocket(userId) {
   console.log('Creating a new WebSocket connection with the userId: ' + userId);
   ws = new WebSocket(`${process.env.VUE_APP_SOCKET_SERVER_URL}/?userId=${userId}`);
 
@@ -17,12 +17,12 @@ function createWebSocket(userId, notifyCallback) {
   ws.onmessage = (event) => {
     console.log('WebSocket message received: ' + event.data);
     const parsedMessage = JSON.parse(event.data);
-    handleSocketMessage(parsedMessage, notifyCallback); // Handle message without callback here
+    handleSocketMessage(parsedMessage); // Handle message without callback here
   };
 
   ws.onclose = () => {
     console.log('WebSocket connection closed');
-    handleReconnect(userId, notifyCallback); // Attempt to reconnect
+    handleReconnect(userId); // Attempt to reconnect
   };
 
   ws.onerror = (error) => {
@@ -31,11 +31,11 @@ function createWebSocket(userId, notifyCallback) {
   };
 }
 
-function handleReconnect(userId, notifyCallback) {
+function handleReconnect(userId) {
   if (reconnectAttempts < maxReconnectAttempts) {
     reconnectAttempts++;
     console.log(`Reconnecting in ${reconnectDelay}ms... (Attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
-    setTimeout(() => createWebSocket(userId, notifyCallback), reconnectDelay);
+    setTimeout(() => createWebSocket(userId), reconnectDelay);
   } else {
     console.error('Max reconnect attempts reached');
   }
@@ -46,10 +46,10 @@ export function initializeWebSocket(userId, notifyCallback) {
     console.log('Closing existing WebSocket connection');
     ws.close(); // Close the existing connection
   }
-  createWebSocket(userId, notifyCallback);
+  createWebSocket(userId);
 }
 
-export function handleSocketMessage(message, notifyCallback) {
+export function handleSocketMessage(message) {
   try {
     const parsedMessage = message; // No need to parse again, it was already parsed
 

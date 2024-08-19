@@ -3,9 +3,9 @@
     <h2>Nearby Users</h2>
 
     <!-- <button @click="triggerTestNotification">Test Notification</button> -->
-    <!-- <button @click="pushSuccessNotification">Push Success Notification</button> -->
+    <!-- <button @click="pushSuccessNotification">Push Success Notification</button>
 
-    <!-- <button @click="refreshAndFetchUser">Refresh Tokens and Fetch User</button> -->
+    <button @click="refreshAndFetchUser">Refresh Tokens and Fetch User</button> -->
 
     <Notivue v-slot="item">
       <Notification :item="item" :icons="myIcons" />
@@ -36,8 +36,7 @@ import UserCard from './UserCard.vue';
 import { fetchNearbyUsersFromAPI } from '@/api/api';
 import { mapGetters } from 'vuex';
 
-// import { initializeWebSocket, sendWebSocketMessage } from '@/utils/websocket';
-import websocketService from '@/utils/websocketService';
+import { initializeWebSocket, sendWebSocketMessage } from '@/utils/websocket';
 
 import { Notivue, Notification, push } from 'notivue'
 import { markRaw } from 'vue'
@@ -46,7 +45,6 @@ import CloseIcon from './icons/CloseIcon.vue';
 // import store from '../store'
 import { mapActions } from 'vuex';
 import refreshTokens from '@/api/RefreshTokens';
-import ActionQueue from '@/utils/ActionQueue';
 
 import axios from 'axios';
 
@@ -60,7 +58,6 @@ export default {
   },
   data() {
     return {
-      likeQueue: new ActionQueue(),
       notify: null,
       numberOfFetchedUsers: 0,
       showSnapIndicator: false,
@@ -100,69 +97,15 @@ export default {
   mounted() {
     // this.notify = useNotivue();
     this.getUserLocation();
-    // initializeWebSocket(this.user.id, push.success);
-    websocketService.initialize(this.user.id);
-    // websocketService.addListener('notification', this.handleNotification);
-
-    const existingListeners = websocketService.listeners.notification || [];
-    const hasListener = existingListeners.some(listener => listener === this.handleNotification);
-
-    if (!hasListener) {
-      // Only add the listener if it's not already added
-      websocketService.addListener('notification', this.handleNotification);
-    }
-
+    initializeWebSocket(this.user.id, push.success);
     window.addEventListener('scroll', this.checkScroll);
-
-    console.log("[Home] websocketService", websocketService)
   },
   beforeUnmount() {
-    websocketService.removeListener('notification', this.handleNotification);
     window.removeEventListener('scroll', this.checkScroll);
   },
   methods: {
     ...mapActions(['refreshToken', 'fetchUser']),
-    handleNotification(data) {
-      if (data) {
-        switch (data.type) {
-          case 'LIKE':
-            console.log(`[Home] ${data.userName} liked your profile.`);
-            push.success({
-              title: 'Profile Liked!',
-              message: `${data.userName} liked your profile.`,
-              icon: '❤️',
-            });
-            break;
 
-          case 'COMMENT':
-            console.log(`${data.userName} commented on your profile.`);
-            push.success({
-              title: 'New Comment!',
-              message: `${data.userName} commented on your profile.`,
-            });
-            break;
-
-          case 'FOLLOW':
-            console.log(`${data.userName} started following you.`);
-            push.success({
-              title: 'New Follower!',
-              message: `${data.userName} started following you.`,
-            });
-            break;
-          case 'UPDATE_LIKE_ID':
-            console.log('UPDATE_LIKE_ID notification received');
-            break;
-          case 'REMOVE_LIKE':
-            console.log('UPDATE_LIKE_ID notification received');
-            break;
-
-          // Add more cases as needed for other actions
-
-          default:
-            console.warn('Unknown notification type:', data.type);
-        }
-      }
-    },
     async refreshAndFetchUser() {
       try {
         // Refresh tokens and get the new access token
@@ -180,7 +123,25 @@ export default {
         console.error('Error fetching data:', error);
         // Handle the error, such as redirecting to the login page
       }
+      // try {
+      //   // Refresh tokens
+      //   await this.refreshToken();
 
+      //   // Fetch user data after refreshing tokens
+      //   await this.fetchUser();
+
+      //   console.log('Tokens refreshed and user data fetched successfully.');
+      // } catch (error) {
+      //   console.error('Error during token refresh and user fetch:', error);
+      // }
+    },
+    async refreshAndFetchUser2() {
+      // await store.dispatch('refreshToken');
+      // await store.dispatch('fetchUser');
+
+      // Retry the original request with the new token
+      const token = localStorage.getItem('token'); // Get updated token
+      console.log(token);
     },
     triggerTestNotification() {
       push('This is a test notification!');
@@ -273,55 +234,45 @@ export default {
         return false;
       }
     },
-    likeUser(userId) {
+    async likeUser(userId) {
+      console.log('Liker user id:', this.user.id);
+      console.log('User id to be liked:', userId);
+      if (!this.user || !this.user.name) {
+        console.error('User data is not available');
+        return;
+      }
+      const user = this.users.find(user => user.id === userId);
 
-      this.likeQueue.enqueue(async () => {
-        console.log('Liker user id:', this.user.id);
-        console.log('User id to be liked/disliked:', userId);
+      if (user) {
+        user.liked = !user.liked;
+      }
 
-        if (!this.user || !this.user.name) {
-          console.error('User data is not available');
-          return;
-        }
+      // Send a WebSocket message for the like action
+      if (user.liked) {
+        sendWebSocketMessage('LIKE', { userId, userName: this.user.name });
+      }
 
-        const user = this.users.find(user => user.id === userId);
+      try {
+        // const likeMessage = user.liked ? `${this.user.name} liked your profile.` : null;
 
+        // Send the like/unlike action to the server
+        await apiClient.post(`/like`, { likedUserId: userId });
+
+        // Send the WebSocket notification only when a user is liked
+        // if (user.liked) {
+        //   sendNotification(user.id, 'LIKE', this.user.name);
+        // }
+
+        // Optionally refresh the nearby users list
+        await this.fetchNearbyUsers();
+      } catch (error) {
+        console.error('Home.vue: Error liking/unliking user', error);
+
+        // Revert the UI change if there was an error
         if (user) {
-          user.liked = !user.liked;  // Toggle like status
+          user.liked = !user.liked;
         }
-
-        try {
-          if (user.liked) {
-            const tempId = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-            // Send WebSocket message for like
-            websocketService.sendMessage('LIKE', { userId, userName: this.user.name, tempId: tempId });
-
-            // Perform database operation to create the like record
-            const response = await apiClient.post('/like', { likedUserId: userId });
-
-            // Optionally send an update with actual likeId after creation
-            websocketService.sendMessage('UPDATE_LIKE_ID', { userId, tempId: tempId, referenceId: response.data.likeId });
-          } else {
-            // Perform dislike action (delete the like record from the database)
-            // await apiClient.post('/dislike', { dislikedUserId: userId });
-            const response = await apiClient.post('/like', { likedUserId: userId });
-
-            // Send WebSocket message to remove the notification
-            websocketService.sendMessage('REMOVE_LIKE', { userId, referenceId: response.data.likeId });
-          }
-
-          // Optionally refresh the nearby users list
-          await this.fetchNearbyUsers();
-        } catch (error) {
-          console.error('Home.vue: Error liking/unliking user', error);
-
-          // Revert the UI change if there was an error
-          if (user) {
-            user.liked = !user.liked;
-          }
-        }
-
-      });
+      }
     },
 
     handleViewDetails(user) {

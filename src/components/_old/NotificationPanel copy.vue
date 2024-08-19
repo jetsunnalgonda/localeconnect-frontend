@@ -72,61 +72,37 @@ export default {
     handleNotificationMenu(data) {
       console.log('[NotificationPanel.vue] Notification occurred:', data);
       if (data) {
-
         switch (data.type) {
-          case 'LIKE': {
+          case 'LIKE':
             console.log(`[NotificationPanel] ${data.userName} liked your profile.`);
+            // fetchNotifications()
             this.notifications.unshift({
-              id: data.id,
-              type: data.type,
-              referenceId: data.referenceId,
+              type: 'LIKE',
               userName: data.userName,
-              createdAt: new Date(data.createdAt), // Convert to Date object if needed
-              isRead: false,
             });
             break;
-          }
 
-          case 'UPDATE_LIKE_ID': {
-            console.log('[NotificationPanel] UPDATE_LIKE_ID notification received');
-            // Find the existing notification to update
-            const updateIndex = this.notifications.findIndex(n => n.tempId === data.tempId);
-            if (updateIndex !== -1) {
-              // Update the notification with new data
-              this.notifications.splice(updateIndex, 1, {
-                ...this.notifications[updateIndex],
-                referenceId: data.referenceId,
-                isRead: false,
-              });
-            }
+          case 'COMMENT':
+            console.log(`${data.userName} commented on your profile.`);
+            this.notifications.unshift({
+              title: 'New Comment!',
+              message: `${data.userName} commented on your profile.`,
+            });
             break;
-          }
-          case 'REMOVE_LIKE': {
-            console.log('[NotificationPanel] REMOVE_LIKE notification received');
-            console.log('data.referenceId', data.referenceId);
-            console.log('this.notifications', this.notifications);
 
-            if (!data.referenceId) {
-              this.fetchNotifications()
-            } else {
-              const existingNotificationIndex = this.notifications.findIndex(n => n.referenceId === data.referenceId);
-              if (existingNotificationIndex !== -1) {
-                this.notifications.splice(existingNotificationIndex, 1);
-              }
-            }
+          case 'FOLLOW':
+            console.log(`${data.userName} started following you.`);
+            this.notifications.unshift({
+              title: 'New Follower!',
+              message: `${data.userName} started following you.`,
+            });
             break;
-          }
 
           // Add more cases as needed for other actions
 
           default:
-            break;
-          // console.warn('Unknown notification type:', data.type);
+            console.warn('Unknown notification type:', data.type);
         }
-
-        console.log('this.notifications:', this.notifications)
-
-
       }
     },
     // formatNotification(notification) {
@@ -151,10 +127,6 @@ export default {
           } else {
             return `${notification.userName} liked your profile.`;
           }
-        case 'UPDATE_LIKE_ID':
-          console.log('Update Like ID message received')
-          return `${notification.userName} liked your profile again.`
-
         case 'message':
           if (notification.extraInfo && notification.extraInfo.sender) {
             return `You have a new message from ${notification.extraInfo.sender.name}.`;

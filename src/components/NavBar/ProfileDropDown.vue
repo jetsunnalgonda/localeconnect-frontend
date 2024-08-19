@@ -5,7 +5,7 @@
         <div v-if="showDropdown" class="dropdown-menu" ref="dropdownProfile">
             <a @click="performLogout">Logout</a>
             <router-link to="/profile">Update Profile</router-link>
-            <a>hello</a>
+            <a>Preferences</a>
         </div>
     </div>
 </template>

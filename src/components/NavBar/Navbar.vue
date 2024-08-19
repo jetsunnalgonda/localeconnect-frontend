@@ -2,7 +2,7 @@
     <nav class="navbar">
         <div class="navbar-content">
             <div class="logo">
-                <router-link to="/">Cool App</router-link>
+                <router-link to="/"><img src="../../assets/goodmessage-logo.png" /></router-link>
             </div>
             <div class="right-side">
                 <NotificationPanel v-if="isAuthenticated" />

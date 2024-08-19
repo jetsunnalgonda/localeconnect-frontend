@@ -3,7 +3,7 @@
   <div class="user-card">
     <img :src="profilePicUrl || defaultAvatarUrl" alt="User Avatar" class="user-avatar">
     <div class="user-info">
-      <p class="user-name">{{ user.name }}</p>
+      <p class="user-name">{{ user.name }} id: {{ user.id }}</p>
       <p class="user-location">{{ user.location.placeName }}</p>
     </div>
     <div class="user-actions">
