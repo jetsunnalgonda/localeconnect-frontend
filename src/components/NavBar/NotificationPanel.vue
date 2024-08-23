@@ -1,26 +1,35 @@
 <template>
   <div class="notification-panel" v-click-outside="handleClickOutside" ref="notificationPanel">
+
     <button @click="toggleNotifications" class="notification-button">
       <div class="notification-icon">
         <i class="fas fa-bell"></i>
         <span v-if="unreadCount > 0" class="notification-count">{{ unreadCount }}</span>
       </div>
     </button>
+
     <div v-if="showNotifications" class="dropdown-menu" ref="dropdown">
-      <p v-if="notifications.length === 0">No notifications.</p>
+      <p v-if="notifications.length === 0" class="no-notifications">No notifications.</p>
       <ul v-else>
-        <li v-for="notification in notifications" :key="notification.id">
-          <a @click="viewNotification(notification)">{{ formatNotification(notification) }}</a>
+        <li v-for="notification in notifications.slice(0, 5)" :key="notification.id" class="notification-item">
+          <a>{{ formatNotification(notification) }}</a>
+          <div class="smallText">{{ formatTime(notification.createdAt) }}</div>
         </li>
       </ul>
+      <button @click="goToAllNotifications" class="show-all-btn">Show All Notifications</button>
     </div>
+
   </div>
 </template>
+
+
+
 
 <script>
 import websocketService from '@/utils/websocketService';
 import { mapGetters } from 'vuex';
 import apiClient from '@/api/apiClient';
+import { formatTime, formatNotification } from '@/utils/notificationUtils';
 
 export default {
   data() {
@@ -36,6 +45,12 @@ export default {
     },
   },
   methods: {
+    formatNotification(notification) {
+      return formatNotification(notification);
+    },
+    formatTime(createdAt) {
+      return formatTime(createdAt);
+    },
     toggleNotifications() {
       this.showNotifications = !this.showNotifications;
     },
@@ -46,7 +61,7 @@ export default {
     async fetchNotifications() {
       try {
         const { data } = await apiClient.get('/notifications');
-        console.log('data', data);
+        console.log('[fetchNotifications] data', data);
         this.notifications = data;
       } catch (error) {
         console.error('Error fetching notifications:', error);
@@ -141,38 +156,14 @@ export default {
     //       return `Notification: ${notification.referenceId}`;
     //   }
     // },
-    formatNotification(notification) {
-      console.log('[formatNotification] Notification:', notification)
-      switch (notification.type) {
-        case 'LIKE':
-          console.log('notification.extraInfo', notification.extraInfo)
-          if (notification.extraInfo && notification.extraInfo.liker) {
-            return `${notification.extraInfo.liker.name} liked your profile.`;
-          } else {
-            return `${notification.userName} liked your profile.`;
-          }
-        case 'UPDATE_LIKE_ID':
-          console.log('Update Like ID message received')
-          return `${notification.userName} liked your profile again.`
 
-        case 'message':
-          if (notification.extraInfo && notification.extraInfo.sender) {
-            return `You have a new message from ${notification.extraInfo.sender.name}.`;
-          } else {
-            return `You have a new message.`;
-          }
-        case 'follow':
-          if (notification.extraInfo && notification.extraInfo.follower) {
-            return `${notification.extraInfo.follower.name} started following you.`;
-          } else {
-            return `You have a new follower.`;
-          }
-        default:
-          return `Notification: ${notification.referenceId}`;
-      }
+    goToAllNotifications() {
+      this.$router.push('/notifications');
+      this.showNotifications = false;
     },
 
   },
+
   mounted() {
     this.fetchNotifications();
     console.log("[NotificationPanel] websocketService", websocketService)
@@ -206,10 +197,14 @@ export default {
 }
 
 .notification-button {
-  position: relative;
   background: none;
   border: none;
   cursor: pointer;
+  transition: transform 0.3s;
+}
+
+.notification-button:hover {
+  transform: scale(1.05);
 }
 
 .notification-icon {
@@ -220,25 +215,25 @@ export default {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 2px solid #fff;
-  background-color: #333;
-  color: #fff;
+  background: linear-gradient(135deg, #4e54c8, #8f94fb);
+  color: white;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .notification-icon i {
   font-size: 20px;
-  /* Adjust size of bell icon */
 }
 
 .notification-count {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -6px;
+  right: -6px;
   background-color: red;
   color: white;
   border-radius: 50%;
-  padding: 2px 6px;
+  padding: 4px 8px;
   font-size: 12px;
+  font-weight: bold;
 }
 
 .dropdown-menu {
@@ -246,10 +241,18 @@ export default {
   right: 0;
   background-color: white;
   border: 1px solid #ccc;
-  padding: 10px;
+  padding: 0;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  width: 200px;
+  width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.no-notifications {
+  padding: 16px;
+  text-align: center;
+  color: #888;
 }
 
 .dropdown-menu ul {
@@ -258,17 +261,46 @@ export default {
   margin: 0;
 }
 
-.dropdown-menu li {
-  padding: 5px 0;
+.notification-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
 }
 
-.dropdown-menu li a {
-  color: black;
+.notification-item a {
+  color: #333;
+  font-weight: 500;
+  text-decoration: none;
+  display: block;
+}
+
+.notification-item .smallText {
+  color: #999;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.notification-item a:hover {
   text-decoration: none;
 }
 
-.dropdown-menu li a:hover {
-  color: black;
-  text-decoration: none;
+.show-all-btn {
+  display: block;
+  margin: 12px auto;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: #e0e0e0;
+  color: #212121;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.show-all-btn:hover {
+  background-color: #d6d6d6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
