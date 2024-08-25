@@ -11,9 +11,9 @@
         <input v-model="form.password" id="password" type="password" required />
       </div>
       <button type="submit" class="login-button">Login</button>
-      <button @click="goToRegister" class="register-button">Register</button>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
     </form>
+    <button @click="goToRegister" class="register-button">Register</button>
   </div>
 </template>
 
