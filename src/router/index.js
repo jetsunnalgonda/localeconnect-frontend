@@ -33,13 +33,17 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login'); // Redirect to login if not authenticated
   } else if (to.path.startsWith('/login')) {
-    next(`/#${to.fullPath}`);
+    next();
+    // next(`/#${to.fullPath}`);
   } else if (to.path.startsWith('/profile')) {
-    next(`/#${to.fullPath}`);
+    // next(`${to.fullPath}`);
+    next();
   } else if (to.path.startsWith('/notifications')) {
-    next(`/#${to.fullPath}`);
+    next();
+    // next(`/#${to.fullPath}`);
   } else if (to.path.startsWith('/register')) {
-    next(`/#${to.fullPath}`);    
+    next();
+    // next(`/#${to.fullPath}`);    
   } else {
     // next(`/#${to.fullPath}`);
     next();
