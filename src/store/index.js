@@ -43,7 +43,7 @@ export default createStore({
   actions: {
     async login({ commit, dispatch }, form) {
       try {
-        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/login`, form);
+        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/api/login`, form);
         const { token, refreshToken } = response.data;
         console.log('Access token received:', token);
         console.log('Refresh token received:', refreshToken);
@@ -72,7 +72,7 @@ export default createStore({
     },
     async refreshToken({ commit, state }) {
       try {
-        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/refresh`, {
+        const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/api/refresh`, {
           token: state.refreshToken,
         });
         const { token, refreshToken } = response.data;
@@ -97,7 +97,7 @@ export default createStore({
     },
     async fetchUser({ commit, dispatch }) {
       try {
-        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/profile`, {
+        const response = await axios.get(`${process.env.VUE_APP_API_BASE_URL}/api/profile`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         commit('setUser', response.data);

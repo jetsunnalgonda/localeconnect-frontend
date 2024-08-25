@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export async function getUser() {
     try {
-        const url = `${process.env.VUE_APP_API_BASE_URL}/profile`;
+        const url = `${process.env.VUE_APP_API_BASE_URL}/api/profile`;
         const headers = getAuthHeaders();
         console.log(`Requesting user profile from: ${url}`);    
 

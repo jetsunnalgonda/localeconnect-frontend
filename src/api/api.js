@@ -2,7 +2,7 @@ import apiClient from './apiClient.js';
 
 export const likeUser = async (userId, likeMessage) => {
   try {
-    return await apiClient.post(`/like`, { likedUserId: userId, likeMessage });
+    return await apiClient.post(`/api/like`, { likedUserId: userId, likeMessage });
   } catch (error) {
     console.error('api.js: Error liking/unliking user', error);
     throw error;  // Re-throw the error to handle it in the component
@@ -10,7 +10,7 @@ export const likeUser = async (userId, likeMessage) => {
 };
 
 export const fetchNearbyUsersFromAPI = async (location, radiusKm, page, limit) => {
-    const response = await apiClient.get('/feed', {
+    const response = await apiClient.get('/api/feed', {
       params: {
         latitude: location.latitude,
         longitude: location.longitude,

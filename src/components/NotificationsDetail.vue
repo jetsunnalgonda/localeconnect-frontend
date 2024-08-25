@@ -90,7 +90,7 @@ export default {
     fetchNotifications() {
       this.notificationQueue.enqueue(async () => {
         try {
-          const { data } = await apiClient.get('/notifications');
+          const { data } = await apiClient.get('/api/notifications');
           this.notifications = await Promise.all(
             data.map(async (notification) => {
               const profilePicUrl = await this.fetchProfilePicUrl(notification);

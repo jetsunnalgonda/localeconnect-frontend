@@ -62,7 +62,7 @@ export default {
     },
     async fetchNotifications() {
       try {
-        const { data } = await apiClient.get('/notifications');
+        const { data } = await apiClient.get('/api/notifications');
         console.log('[fetchNotifications] data', data);
         this.notifications = data;
       } catch (error) {

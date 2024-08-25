@@ -13,7 +13,7 @@ async function refreshTokens() {
 
     // Send a request to refresh the tokens
     // const response = await apiClient('/refresh', { token: refreshToken });
-    const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/refresh`, { token: refreshToken });
+    const response = await axios.post(`${process.env.VUE_APP_API_BASE_URL}/api/refresh`, { token: refreshToken });
 
 
     // Extract the new tokens from the response

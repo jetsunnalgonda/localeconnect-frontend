@@ -43,7 +43,7 @@ export default {
   actions: {
     async login({ commit, dispatch }, form) {
       try {
-        const response = await apiClient.post(`/login`, form);
+        const response = await apiClient.post(`/api/login`, form);
         const { token, refreshToken } = response.data;
 
         // Store tokens
@@ -68,7 +68,7 @@ export default {
     },
     async refreshToken({ commit, state }) {
       try {
-        const response = await apiClient.post(`/refresh`, {
+        const response = await apiClient.post(`/api/refresh`, {
           token: state.refreshToken,
         });
         const { token, refreshToken } = response.data;
@@ -87,7 +87,7 @@ export default {
     },
     async fetchUser({ commit }) {
       try {
-        const response = await apiClient.get(`/profile`);
+        const response = await apiClient.get(`/api/profile`);
         commit('setUser', response.data);
         commit('setAuthenticated', true);
       } catch (error) {

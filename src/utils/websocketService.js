@@ -19,7 +19,7 @@ class WebSocketService {
     // Create a new WebSocket connection
     createWebSocket(userId) {
       console.log('Creating a new WebSocket connection with userId: ' + userId);
-      this.ws = new WebSocket(`${process.env.VUE_APP_SOCKET_SERVER_URL}/?userId=${userId}`);
+      this.ws = new WebSocket(`${process.env.VUE_APP_SOCKET_SERVER_URL}/api/?userId=${userId}`);
   
       this.ws.onopen = () => {
         console.log('WebSocket connection opened');

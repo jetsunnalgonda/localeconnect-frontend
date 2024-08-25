@@ -161,7 +161,7 @@ export default {
             // }
         },
         async getUserProfile() {
-            const url = `${this.apiBaseUrl}/profile`;
+            const url = `${this.apiBaseUrl}/api/profile`;
             const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
             console.log(`Requesting user profile from: ${url}`);
             return axios.get(url, { headers });
@@ -207,17 +207,17 @@ export default {
                     const avatarFormData = new FormData();
                     avatarFormData.append('avatars', this.temporaryAvatar);
 
-                    await apiClient.put('/profile', avatarFormData, {
+                    await apiClient.put('/api/profile', avatarFormData, {
                         headers: {
                             'Content-Type': 'multipart/form-data',
                         },
                     });
 
-                    const response = await apiClient.get('/profile');
+                    const response = await apiClient.get('/api/profile');
                     formData.avatars = response.data.avatars;
                 }
 
-                const response = await apiClient.put('/profile', formData);
+                const response = await apiClient.put('/api/profile', formData);
 
                 this.setUser(response.data);
                 this.fetchUserData();
@@ -237,7 +237,7 @@ export default {
         },
         async deleteAvatar(avatarId) {
             try {
-                await axios.delete(`${this.apiBaseUrl}/profile/avatar/${avatarId}`, {
+                await axios.delete(`${this.apiBaseUrl}/api/profile/avatar/${avatarId}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 });
                 this.fetchUserData();

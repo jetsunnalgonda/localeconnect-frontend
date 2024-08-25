@@ -262,7 +262,7 @@ export default {
 
     async isLiked(userIdToCheck) {
       try {
-        const response = await apiClient.get(`/check-like`, {
+        const response = await apiClient.get(`/api/check-like`, {
           params: { userIdToCheck },
         });
 
@@ -298,14 +298,14 @@ export default {
             websocketService.sendMessage('LIKE', { userId, userName: this.user.name, tempId: tempId, createdAt: now });
 
             // Perform database operation to create the like record
-            const response = await apiClient.post('/like', { likedUserId: userId });
+            const response = await apiClient.post('/api/like', { likedUserId: userId });
 
             // Optionally send an update with actual likeId after creation
             websocketService.sendMessage('UPDATE_LIKE_ID', { userId, tempId: tempId, referenceId: response.data.likeId });
           } else {
             // Perform dislike action (delete the like record from the database)
             // await apiClient.post('/dislike', { dislikedUserId: userId });
-            const response = await apiClient.post('/like', { likedUserId: userId });
+            const response = await apiClient.post('/api/like', { likedUserId: userId });
 
             // Send WebSocket message to remove the notification
             websocketService.sendMessage('REMOVE_LIKE', { userId, referenceId: response.data.likeId });
