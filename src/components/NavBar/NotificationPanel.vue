@@ -12,8 +12,10 @@
       <p v-if="notifications.length === 0" class="no-notifications">No notifications.</p>
       <ul v-else>
         <li v-for="notification in notifications.slice(0, 5)" :key="notification.id" class="notification-item">
-          <a>{{ formatNotification(notification) }}</a>
-          <div class="smallText">{{ formatTime(notification.createdAt) }}</div>
+          <a>
+            <div>{{ formatNotification(notification) }}</div>
+            <div class="smallText">{{ formatTime(notification.createdAt) }}</div>
+          </a>
         </li>
       </ul>
       <button @click="goToAllNotifications" class="show-all-btn">Show All Notifications</button>
@@ -240,8 +242,8 @@ export default {
   position: absolute;
   right: 0;
   background-color: white;
-  border: 1px solid #ccc;
-  padding: 0;
+  /* border: 1px solid #ccc; */
+  padding: 10px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   width: 280px;
@@ -262,10 +264,15 @@ export default {
 }
 
 .notification-item {
-  padding: 10px 16px;
+  padding: 10px 0;
   border-bottom: 1px solid #eee;
   font-size: 14px;
 }
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
 
 .notification-item a {
   color: #333;

@@ -5,7 +5,7 @@
                 <router-link to="/"><img src="../../assets/goodmessage-logo.png" /></router-link>
             </div>
             <div class="right-side">
-                <ChatPanel v-if="isAuthenticated" />
+                <ChatDropdown v-if="isAuthenticated" />
                 <NotificationPanel v-if="isAuthenticated" />
                 <ProfileDropDown v-if="isAuthenticated" />
             </div>
@@ -17,14 +17,14 @@
 import { mapGetters } from 'vuex';
 import NotificationPanel from './NotificationPanel.vue';
 import ProfileDropDown from './ProfileDropDown.vue';
-import ChatPanel from '../ChatDropdown.vue';
+import ChatDropdown from '../ChatDropdown.vue';
 
 export default {
     name: 'NavBar',
     components: {
         NotificationPanel,
         ProfileDropDown,
-        ChatPanel,
+        ChatDropdown,
     },
     computed: {
         ...mapGetters(['isAuthenticated']),
