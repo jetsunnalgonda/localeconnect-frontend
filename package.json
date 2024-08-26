@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "vue-cli-service build",
-    "heroku-postbuild": "npm run build"
+    "build": "vue-cli-service build"
   },
   "dependencies": {
     "@babel/core": "^7.12.16",
