@@ -4,10 +4,6 @@ const history = require('connect-history-api-fallback');
 
 const app = express();
 
-// Get the current directory in CommonJS
-const __filename = __filename;
-const __dirname = path.dirname(__filename);
-
 // Middleware to handle Vue Router's history mode
 app.use(history());
 
@@ -23,4 +19,13 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3011;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Handle uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (err) => {
+  console.error('Unhandled Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', promise, 'reason:', reason);
 });
