@@ -4,6 +4,21 @@ const history = require('connect-history-api-fallback');
 
 const app = express();
 
+// Redirect HTTP to HTTPS and handle the root domain redirect
+app.use((req, res, next) => {
+  // Redirect from non-www to www
+  if (req.headers.host === 'webconnect.world') {
+    return res.redirect(301, `https://www.webconnect.world${req.url}`);
+  }
+
+  // Redirect HTTP to HTTPS
+  if (req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect(`https://${req.hostname}${req.url}`);
+  }
+
+  next();
+});
+
 // Middleware to handle Vue Router's history mode
 app.use(history());
 
