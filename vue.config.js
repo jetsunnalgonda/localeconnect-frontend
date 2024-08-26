@@ -1,7 +1,14 @@
-module.exports = {
-    publicPath: '/',
-    devServer: {
-      historyApiFallback: true,
-    },
-  };
-  
+// module.exports = {
+//   publicPath: '/',
+//   devServer: {
+//     historyApiFallback: true,
+//   },
+// };
+
+
+export default {
+  publicPath: '/',
+  devServer: {
+    historyApiFallback: true,
+  },
+};

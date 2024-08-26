@@ -2,6 +2,8 @@
   "name": "nodejs-challenge-frontend",
   "version": "0.1.0",
   "private": true,
+  "main": "server.js",
+  "type": "module",
   "scripts": {
     "serve": "vue-cli-service serve --port 3011",
     "build": "vue-cli-service build",
