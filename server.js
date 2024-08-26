@@ -1,12 +1,11 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import history from 'connect-history-api-fallback';
+const express = require('express');
+const path = require('path');
+const history = require('connect-history-api-fallback');
 
 const app = express();
 
-// Get the current directory in ES6 modules
-const __filename = fileURLToPath(import.meta.url);
+// Get the current directory in CommonJS
+const __filename = __filename;
 const __dirname = path.dirname(__filename);
 
 // Middleware to handle Vue Router's history mode
